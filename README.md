@@ -1,4 +1,7 @@
 # Off-Campus Housing Management System (Verified Housing for Students & Workers)
+- Nguyen Van Duy Anh
+- Tran Anh Chuong
+- Duong Hien Chi Kien
 
 ## 1) Brief Description (Problem + Solution)
 **Problem:** Students and workers near universities/industrial zones often find housing through Facebook/Zalo groups. This leads to unverified listings, inconsistent information, no contract standardization, and difficult handling of disputes/safety/maintenance issues.
@@ -81,7 +84,7 @@ Key focus: **verified listings, structured contracts, and issue/incident workflo
 ---
 
 ## 5) Tech Stack
-**Database:** MySQL 8 (or PostgreSQL 15+ if allowed)  
+**Database:** MySQL 8
 **Backend API:** Node.js + Express (or Flask)  
 **Frontend:** React (or simple server-rendered pages if scope is tight)  
 **Auth:** JWT/session + bcrypt password hashing  
@@ -92,76 +95,9 @@ Key focus: **verified listings, structured contracts, and issue/incident workflo
 ---
 
 ## 6) Team Members and Roles
-**Dương Hiển Chí Kiên
-
-Nguyễn Văn Duy Anh
-
-Trần Anh Chương**
-
-Collaborative Responsibilities (Shared Across All Members)
-
-All three team members jointly perform the following tasks:
-
-**1. Requirements & System Design**
-
-Functional & non-functional requirements
-
-Use-case analysis, workflow mapping
-
-Architecture design (database + backend + frontend)
-
-**2. Database Design & Implementation**
-
-Conceptual design (ERD), normalization (3NF)
-
-Physical schema (DDL)
-
-Views, stored procedures (≥2), triggers (≥1)
-
-Indexing, optimization, performance testing
-
-Security: roles, privileges, hashing, SQL injection prevention
-
-**3. Backend Development**
-
-API design (REST)
-
-Authentication + authorization
-
-CRUD endpoints & business logic
-
-Procedures integration and DB connectivity
-
-Error handling, validations
-
-**4. Frontend Development**
-
-UI/UX layout design
-
-CRUD flows for all entities
-
-Admin dashboard + analytics
-
-Form validation, data visualization
-
-**5. DevOps & Deployment**
-
-Docker setup (if used)
-
-CI/CD, environment setup
-
-Production database configuration
-
-**6. Testing & Quality Assurance**
-
-Unit tests + integration tests
-
-Test plan for system workflows
-
-Load testing (optional)
-
-Security testing (RBAC, SQL injection checks)
-
+- **Member 1 (Nguyen Van Duy Anh):** Project Manager + Requirements + Documentation, QA/Security (test plan, SQL injection prevention, RBAC)
+- **Member 2 (Duong Hien Chi Kien):** Database Architect (ERD, normalization, DDL, views, indexes)
+- **Member 3 (Tran Anh Chuong):** Backend Developer (API, procedures integration, auth), Frontend Developer (UI, CRUD flows, admin dashChuong
 ---
 
 ## 7) Timeline (Planned Milestones)
@@ -236,8 +172,6 @@ Security testing (RBAC, SQL injection checks)
 ---
 
 ## 9) Repository Structure (Suggested)
-
----
 
 ## 10) How to Run (Example)
 1. Create database and user (MySQL)
