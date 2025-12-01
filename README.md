@@ -92,13 +92,75 @@ Key focus: **verified listings, structured contracts, and issue/incident workflo
 ---
 
 ## 6) Team Members and Roles
-> Replace names as needed.
+**Dương Hiển Chí Kiên
 
-- **Member 1 (Name):** Project Manager + Requirements + Documentation
-- **Member 2 (Name):** Database Architect (ERD, normalization, DDL, views, indexes)
-- **Member 3 (Name):** Backend Developer (API, procedures integration, auth)
-- **Member 4 (Name):** Frontend Developer (UI, CRUD flows, admin dashboard)
-- **Member 5 (Name, optional):** QA/Security (test plan, SQL injection prevention, RBAC)
+Nguyễn Văn Duy Anh
+
+Trần Anh Chương**
+
+Collaborative Responsibilities (Shared Across All Members)
+
+All three team members jointly perform the following tasks:
+
+**1. Requirements & System Design**
+
+Functional & non-functional requirements
+
+Use-case analysis, workflow mapping
+
+Architecture design (database + backend + frontend)
+
+**2. Database Design & Implementation**
+
+Conceptual design (ERD), normalization (3NF)
+
+Physical schema (DDL)
+
+Views, stored procedures (≥2), triggers (≥1)
+
+Indexing, optimization, performance testing
+
+Security: roles, privileges, hashing, SQL injection prevention
+
+**3. Backend Development**
+
+API design (REST)
+
+Authentication + authorization
+
+CRUD endpoints & business logic
+
+Procedures integration and DB connectivity
+
+Error handling, validations
+
+**4. Frontend Development**
+
+UI/UX layout design
+
+CRUD flows for all entities
+
+Admin dashboard + analytics
+
+Form validation, data visualization
+
+**5. DevOps & Deployment**
+
+Docker setup (if used)
+
+CI/CD, environment setup
+
+Production database configuration
+
+**6. Testing & Quality Assurance**
+
+Unit tests + integration tests
+
+Test plan for system workflows
+
+Load testing (optional)
+
+Security testing (RBAC, SQL injection checks)
 
 ---
 
