@@ -1,4 +1,7 @@
 # Off-Campus Housing Management System (Verified Housing for Students & Workers)
+- Nguyen Van Duy Anh
+- Tran Anh Chuong
+- Duong Hien Chi Kien
 
 ## 1) Brief Description (Problem + Solution)
 **Problem:** Students and workers near universities/industrial zones often find housing through Facebook/Zalo groups. This leads to unverified listings, inconsistent information, no contract standardization, and difficult handling of disputes/safety/maintenance issues.
@@ -81,7 +84,7 @@ Key focus: **verified listings, structured contracts, and issue/incident workflo
 ---
 
 ## 5) Tech Stack
-**Database:** MySQL 8 (or PostgreSQL 15+ if allowed)  
+**Database:** MySQL 8
 **Backend API:** Node.js + Express (or Flask)  
 **Frontend:** React (or simple server-rendered pages if scope is tight)  
 **Auth:** JWT/session + bcrypt password hashing  
@@ -92,14 +95,9 @@ Key focus: **verified listings, structured contracts, and issue/incident workflo
 ---
 
 ## 6) Team Members and Roles
-> Replace names as needed.
-
-- **Member 1 (Name):** Project Manager + Requirements + Documentation
-- **Member 2 (Name):** Database Architect (ERD, normalization, DDL, views, indexes)
-- **Member 3 (Name):** Backend Developer (API, procedures integration, auth)
-- **Member 4 (Name):** Frontend Developer (UI, CRUD flows, admin dashboard)
-- **Member 5 (Name, optional):** QA/Security (test plan, SQL injection prevention, RBAC)
-
+- **Member 1 (Nguyen Van Duy Anh):** Project Manager + Requirements + Documentation, QA/Security (test plan, SQL injection prevention, RBAC)
+- **Member 2 (Duong Hien Chi Kien):** Database Architect (ERD, normalization, DDL, views, indexes)
+- **Member 3 (Tran Anh Chuong):** Backend Developer (API, procedures integration, auth), Frontend Developer (UI, CRUD flows, admin dashChuong
 ---
 
 ## 7) Timeline (Planned Milestones)
@@ -174,8 +172,6 @@ Key focus: **verified listings, structured contracts, and issue/incident workflo
 ---
 
 ## 9) Repository Structure (Suggested)
-
----
 
 ## 10) How to Run (Example)
 1. Create database and user (MySQL)
