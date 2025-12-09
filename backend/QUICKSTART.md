@@ -9,7 +9,7 @@
 
 1. **Navigate to API directory:**
    ```bash
-   cd api
+   cd backend
    ```
 
 2. **Install dependencies:**
