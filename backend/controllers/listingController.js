@@ -2,6 +2,7 @@ const pool = require('../config/database');
 const { body, validationResult } = require('express-validator');
 
 // Get all listings with filters
+// backend/controllers/listingController.js
 const getListings = async (req, res, next) => {
   try {
     const {
@@ -15,7 +16,10 @@ const getListings = async (req, res, next) => {
       page = 1,
       limit = 20
     } = req.query;
-    const offset = (page - 1) * limit;
+
+    // 1. ✅ Force Integer Conversion (The Fix)
+    const limitNum = parseInt(limit, 10);
+    const offsetNum = (parseInt(page, 10) - 1) * limitNum;
 
     let query = `
       SELECT l.*, 
@@ -68,14 +72,24 @@ const getListings = async (req, res, next) => {
     }
 
     query += ' ORDER BY l.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
+    
+    // 2. ✅ Push the Numbers
+    params.push(limitNum, offsetNum);
 
-    const [listings] = await pool.execute(query, params);
+    // 3. ✅ Use pool.query (Safer for LIMIT/OFFSET)
+    const [listings] = await pool.query(query, params);
 
     // Parse JSON features
     listings.forEach(listing => {
       if (listing.features_json) {
-        listing.features_json = JSON.parse(listing.features_json);
+        // Handle double-stringified JSON if necessary, or just parse
+        try {
+          listing.features_json = typeof listing.features_json === 'string' 
+            ? JSON.parse(listing.features_json) 
+            : listing.features_json;
+        } catch (e) {
+          listing.features_json = {};
+        }
       }
     });
 

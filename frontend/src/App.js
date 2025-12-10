@@ -3,13 +3,18 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import { authService } from './services/api';
 import ProtectedRoute from './components/ProtectedRoute';
+import LandlordDashboard from './pages/landlord/LandlordDashboard';
+import CreateListing from './pages/landlord/CreateListing';
+import MyProperties from './pages/landlord/MyProperties';
+import ListingSearch from './pages/tenant/ListingSearch';
+import ListingDetail from './pages/tenant/ListingDetail';
 
 // Simple Dashboard Placeholder
 // Placeholder Components (You will build these next)
 const TenantDashboard = () => <h1>Tenant Dashboard</h1>;
-const LandlordDashboard = () => <h1>Landlord Dashboard</h1>;
+// const LandlordDashboard = () => <h1>Landlord Dashboard</h1>;
 const AdminDashboard = () => <h1>Admin Dashboard</h1>;
-const ListingSearch = () => <h1>Search Listings</h1>;
+
 const ContractList = () => <h1>My Contracts</h1>;
 
 const Dashboard = () => {
@@ -48,13 +53,16 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['tenant']} />}>
           <Route path="/dashboard" element={<TenantDashboard />} />
           <Route path="/listings" element={<ListingSearch />} />
+          <Route path="/listings/:id" element={<ListingDetail />} />
           <Route path="/my-contracts" element={<ContractList />} />
         </Route>
 
         {/* LANDLORD ROUTES (Role: landlord) */}
         <Route element={<ProtectedRoute allowedRoles={['landlord']} />}>
           <Route path="/landlord/dashboard" element={<LandlordDashboard />} />
-          <Route path="/landlord/properties" element={<h1>Manage Properties</h1>} />
+          <Route path="/landlord" element={<Navigate to="/landlord/dashboard" replace />} />
+          <Route path="/landlord/create-listing/:propertyId" element={<CreateListing />} />
+          <Route path="/landlord/properties" element={<MyProperties />} />
           <Route path="/landlord/contracts" element={<h1>Manage Contracts</h1>} />
         </Route>
 

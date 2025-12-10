@@ -54,4 +54,31 @@ export const authService = {
   },
 };
 
+// --- PROPERTY SERVICE ---
+export const propertyService = {
+  getAll: (params) => api.get('/properties', { params }), // Updated to accept params
+  getById: (id) => api.get(`/properties/${id}`),
+  create: (data) => api.post('/properties', data),
+  // Note: Your properties.js route for rooms is router.post('/:id/rooms', ...)
+  createRoom: (propertyId, data) => api.post(`/properties/${propertyId}/rooms`, data),
+};
+
+// --- LISTING SERVICE ---
+export const listingService = {
+  // Supports filters like: getAll({ status: 'verified', min_price: 1000 })
+  getAll: (params) => api.get('/listings', { params }), 
+  getById: (id) => api.get(`/listings/${id}`),
+  create: (data) => api.post('/listings', data),
+  update: (id, data) => api.put(`/listings/${id}`, data),
+  delete: (id) => api.delete(`/listings/${id}`),
+};
+
+// --- RENTAL REQUEST SERVICE ---
+export const requestService = {
+  getAll: () => api.get('/rental-requests'),
+  getById: (id) => api.get(`/rental-requests/${id}`),
+  create: (data) => api.post('/rental-requests', data),
+  updateStatus: (id, status) => api.put(`/rental-requests/${id}/status`, { status }),
+};
+
 export default api;
