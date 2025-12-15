@@ -19,5 +19,3 @@ router.put('/:id', authenticate, listingController.updateListing);
 router.delete('/:id', authenticate, listingController.deleteListing);
 
 module.exports = router;
-
-

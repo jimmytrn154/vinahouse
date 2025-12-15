@@ -12,8 +12,6 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
   // 2. Check if user has the correct role
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // 🛑 STOP! Don't just send everyone to /dashboard.
-    // Send them to the dashboard meant for THEIR role.
     
     if (user.role === 'landlord') {
       return <Navigate to="/landlord/dashboard" replace />;
