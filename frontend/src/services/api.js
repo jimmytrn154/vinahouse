@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ⚠️ IMPORTANT: If you moved your backend to port 5000, change this URL to 'http://localhost:5000/api'
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:3000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -66,7 +66,7 @@ export const propertyService = {
 // --- LISTING SERVICE ---
 export const listingService = {
   // Supports filters like: getAll({ status: 'verified', min_price: 1000 })
-  getAll: (params) => api.get('/listings', { params }), 
+  getAll: (params) => api.get('/listings', { params }),
   getById: (id) => api.get(`/listings/${id}`),
   create: (data) => api.post('/listings', data),
   update: (id, data) => api.put(`/listings/${id}`, data),
@@ -79,6 +79,21 @@ export const requestService = {
   getById: (id) => api.get(`/rental-requests/${id}`),
   create: (data) => api.post('/rental-requests', data),
   updateStatus: (id, status) => api.put(`/rental-requests/${id}/status`, { status }),
+};
+
+// --- CONTRACT SERVICE ---
+export const contractService = {
+  getAll: () => api.get('/contracts'),
+  getById: (id) => api.get(`/contracts/${id}`),
+  sign: (id) => api.post(`/contracts/${id}/sign`),
+};
+
+// --- ISSUE SERVICE ---
+export const issueService = {
+  getAll: () => api.get('/issues'),
+  getById: (id) => api.get(`/issues/${id}`),
+  create: (data) => api.post('/issues', data),
+  updateStatus: (id, status) => api.put(`/issues/${id}/status`, { status }),
 };
 
 export default api;

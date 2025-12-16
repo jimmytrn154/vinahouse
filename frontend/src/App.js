@@ -11,7 +11,11 @@ import ListingDetail from './pages/tenant/ListingDetail';
 
 // Simple Dashboard Placeholder
 // Placeholder Components (You will build these next)
-const TenantDashboard = () => <h1>Tenant Dashboard</h1>;
+import TenantDashboard from './pages/tenant/TenantDashboard';
+
+// Simple Dashboard Placeholder
+// Placeholder Components (You will build these next)
+// const TenantDashboard = () => <h1>Tenant Dashboard</h1>;
 // const LandlordDashboard = () => <h1>Landlord Dashboard</h1>;
 const AdminDashboard = () => <h1>Admin Dashboard</h1>;
 
@@ -19,7 +23,7 @@ const ContractList = () => <h1>My Contracts</h1>;
 
 const Dashboard = () => {
   const user = authService.getCurrentUser();
-  
+
   const handleLogout = () => {
     authService.logout();
   };
@@ -31,7 +35,7 @@ const Dashboard = () => {
       <h1>Welcome, {user.full_name}!</h1>
       <h3>Role: {user.role}</h3>
       <p>This is the protected dashboard.</p>
-      <button 
+      <button
         onClick={handleLogout}
         style={{ padding: '10px 20px', cursor: 'pointer', background: 'red', color: 'white', border: 'none' }}
       >
@@ -48,7 +52,7 @@ function App() {
         {/* PUBLIC ROUTES */}
         <Route path="/login" element={<AuthPage />} />
         <Route path="/register" element={<AuthPage />} />
-        
+
         {/* TENANT ROUTES (Role: tenant) */}
         <Route element={<ProtectedRoute allowedRoles={['tenant']} />}>
           <Route path="/dashboard" element={<TenantDashboard />} />
