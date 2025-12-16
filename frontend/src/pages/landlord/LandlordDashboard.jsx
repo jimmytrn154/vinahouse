@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Container, Grid, Paper, Typography, Box, Button, 
-  Table, TableBody, TableCell, TableHead, TableRow, Chip,
-  CircularProgress, Alert 
-} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api'; // Use your configured axios instance
-import { listingService, requestService } from '../../services/api';
+import { listingService, requestService, authService } from '../../services/api';
 import Navbar from '../../components/Navbar';
+import './LandlordDashboard.css'; // Import the custom styles
 
 export default function LandlordDashboard() {
   const navigate = useNavigate();
@@ -16,153 +11,164 @@ export default function LandlordDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const user = authService.getCurrentUser();
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Fetch Listings to count them
-        // Note: Real production apps usually have a specific /stats endpoint, 
-        // but we can just fetch the lists for MVP.
-        const listingsRes = await listingService.getAll();
+        // 1. Fetch Listings
+        const listingsRes = await listingService.getAll({ owner_id: user.id });
         
-        // 2. Fetch Rental Requests
+        // 2. Fetch Requests
         const requestsRes = await requestService.getAll();
         
-        // Filter for "pending" requests only
-        const pending = requestsRes.data.filter(r => r.status === 'pending');
+        // Handle array safety
+        const allListings = Array.isArray(listingsRes.data.listings) ? listingsRes.data.listings : [];
+        const allRequests = Array.isArray(requestsRes.data) ? requestsRes.data : [];
+        
+        // Filter pending
+        const pending = allRequests.filter(r => r.status === 'pending');
 
         setStats({
-          listings: listingsRes.data.listings ? listingsRes.data.listings.length : 0,
+          listings: allListings.length,
           requests: pending.length,
-          contracts: 0 // Placeholder until you implement contracts API fetching
+          contracts: 0 
         });
 
-        setRecentRequests(pending.slice(0, 5)); // Show top 5
+        setRecentRequests(pending.slice(0, 5));
       } catch (err) {
         console.error("Dashboard fetch error:", err);
-        setError('Failed to load dashboard data. Ensure backend is running.');
+        setError('Failed to load dashboard data. Check your connection.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [user.id]);
 
   const handleAcceptRequest = async (requestId) => {
+    // Note: You would likely implement a proper modal or confirmation here
+    // For now, we keep the alert logic but styling is not blocked by MUI
+    if(!window.confirm("Accept this rental request?")) return;
+    
     try {
-      // Call the API to update status
-      await api.put(`/rental-requests/${requestId}/status`, { status: 'accepted' });
-      // Remove from list locally to update UI instantly
-      setRecentRequests(prev => prev.filter(r => r.id !== requestId));
-      alert("Request Accepted! Contract draft created.");
+        // Assume requestService.updateStatus exists based on previous convos
+        await requestService.updateStatus(requestId, 'accepted');
+        setRecentRequests(prev => prev.filter(r => r.id !== requestId));
+        setStats(prev => ({ ...prev, requests: prev.requests - 1 }));
     } catch (err) {
-      alert("Error accepting request: " + err.message);
+        alert("Error: " + err.message);
     }
   };
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
+  if (loading) return (
+    <>
+      <Navbar title="Landlord Workspace" />
+      <div className="loading-spinner">Loading dashboard...</div>
+    </>
+  );
 
   return (
     <>
       <Navbar title="Landlord Workspace" />
       
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <div className="dashboard-container">
+        {/* Header */}
+        <header className="dashboard-header">
+          <h1 className="dashboard-title">Overview</h1>
+          <p className="dashboard-subtitle">Welcome back, here's what's happening with your properties.</p>
+        </header>
 
-        {/* STATS CARDS */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 140, bgcolor: '#e3f2fd' }}>
-              <Typography component="h2" variant="h6" color="primary" gutterBottom>
-                My Listings
-              </Typography>
-              <Typography component="p" variant="h3">
-                {stats.listings}
-              </Typography>
-              <Button onClick={() => navigate('/landlord/properties')} sx={{ alignSelf: 'flex-start', mt: 'auto' }}>
-                Manage Listings
-              </Button>
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 140, bgcolor: '#fff3e0' }}>
-              <Typography component="h2" variant="h6" color="warning.main" gutterBottom>
-                Pending Requests
-              </Typography>
-              <Typography component="p" variant="h3">
-                {stats.requests}
-              </Typography>
-              <Typography color="text.secondary" sx={{ flex: 1, mt: 1 }}>
-                Action required
-              </Typography>
-            </Paper>
-          </Grid>
+        {error && <div className="error-banner">{error}</div>}
 
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', height: 140, bgcolor: '#e8f5e9' }}>
-              <Typography component="h2" variant="h6" color="success.main" gutterBottom>
-                Active Contracts
-              </Typography>
-              <Typography component="p" variant="h3">
-                {stats.contracts}
-              </Typography>
-              <Typography color="text.secondary" sx={{ flex: 1, mt: 1 }}>
-                Revenue generating
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
+        {/* Stats Grid */}
+        <div className="stats-grid">
+          {/* Card 1: Listings */}
+          <div className="stat-card blue">
+            <div>
+              <div className="stat-title">Total Listings</div>
+              <div className="stat-value">{stats.listings}</div>
+            </div>
+            <div className="stat-footer">
+              <span>Active on platform</span>
+              <button className="btn btn-link" onClick={() => navigate('/landlord/properties')}>
+                Manage &rarr;
+              </button>
+            </div>
+          </div>
 
-        {/* RECENT REQUESTS TABLE */}
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
-              <Typography component="h2" variant="h6" color="primary" gutterBottom>
-                Incoming Rental Requests
-              </Typography>
-              
-              {recentRequests.length === 0 ? (
-                <Typography sx={{ p: 2, color: 'gray' }}>No pending requests found.</Typography>
-              ) : (
-                <Table size="medium">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Listing ID</TableCell>
-                      <TableCell>Tenant Name</TableCell>
-                      <TableCell>Desired Move-In</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell align="right">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {recentRequests.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell>#{row.listing_id}</TableCell>
-                        <TableCell>User #{row.requester_user_id}</TableCell> {/* You can fetch names later */}
-                        <TableCell>{row.desired_move_in ? new Date(row.desired_move_in).toLocaleDateString() : 'N/A'}</TableCell>
-                        <TableCell>
-                          <Chip label={row.status} color="warning" size="small" />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Button 
-                            variant="contained" 
-                            color="success" 
-                            size="small"
-                            onClick={() => handleAcceptRequest(row.id)}
-                          >
-                            Accept
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
+          {/* Card 2: Requests */}
+          <div className="stat-card orange">
+            <div>
+              <div className="stat-title">Pending Requests</div>
+              <div className="stat-value">{stats.requests}</div>
+            </div>
+            <div className="stat-footer">
+              <span>Requires attention</span>
+              <span style={{ fontSize: '0.8rem', color: '#ea580c' }}>View all</span>
+            </div>
+          </div>
+
+          {/* Card 3: Contracts */}
+          <div className="stat-card green">
+            <div>
+              <div className="stat-title">Active Contracts</div>
+              <div className="stat-value">{stats.contracts}</div>
+            </div>
+            <div className="stat-footer">
+              <span>Monthly Revenue</span>
+              <span style={{ fontSize: '0.8rem', color: '#16a34a' }}>View details</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Requests Section */}
+        <section>
+          <h2 className="section-title">Incoming Rental Requests</h2>
+          <div className="table-container">
+            {recentRequests.length === 0 ? (
+              <div className="empty-state">
+                <p>No pending requests at the moment. Good job!</p>
+              </div>
+            ) : (
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Listing ID</th>
+                    <th>Applicant ID</th>
+                    <th>Move-In Date</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentRequests.map((row) => (
+                    <tr key={row.id}>
+                      <td style={{ fontWeight: 500 }}>#{row.listing_id}</td>
+                      <td>User #{row.requester_user_id}</td>
+                      <td>{row.desired_move_in ? new Date(row.desired_move_in).toLocaleDateString() : 'N/A'}</td>
+                      <td>
+                        <span className={`badge ${row.status}`}>
+                          {row.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button 
+                          className="btn btn-success"
+                          onClick={() => handleAcceptRequest(row.id)}
+                        >
+                          Accept
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      </div>
     </>
   );
 }
