@@ -2,10 +2,15 @@ const pool = require('../config/database');
 const { body, validationResult } = require('express-validator');
 
 // Get all properties
+// backend/controllers/propertyController.js
+
 const getProperties = async (req, res, next) => {
   try {
     const { owner_id, org_id, page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+    
+    // 1. Force conversion to Integers (Crucial for SQL LIMIT)
+    const limitNum = parseInt(limit, 10);
+    const offsetNum = (parseInt(page, 10) - 1) * limitNum;
 
     let query = `
       SELECT p.*, u.full_name as owner_name, o.name as org_name
@@ -27,9 +32,13 @@ const getProperties = async (req, res, next) => {
     }
 
     query += ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
+    
+    // 2. Push the strictly parsed numbers
+    params.push(limitNum, offsetNum);
 
-    const [properties] = await pool.execute(query, params);
+    // 3. ⚠️ CHANGE THIS: Use pool.query instead of pool.execute
+    // pool.execute uses strict prepared statements which often fail on LIMIT ?
+    const [properties] = await pool.query(query, params);
 
     res.json({ properties });
   } catch (error) {

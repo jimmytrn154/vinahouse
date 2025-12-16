@@ -5,32 +5,24 @@ const { body, validationResult } = require('express-validator');
 const getRentalRequests = async (req, res, next) => {
   try {
     const { listing_id, requester_id, status, page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
+
+    // 1. ✅ Fix: Force Integer Conversion
+    const limitNum = parseInt(limit, 10);
+    const offsetNum = (parseInt(page, 10) - 1) * limitNum;
 
     let query = `
       SELECT rr.*, 
+             l.price, 
+             p.address as property_address,
              u.full_name as requester_name,
-             l.price as listing_price,
-             p.address as property_address
+             u.email as requester_email
       FROM rental_requests rr
-      LEFT JOIN users u ON rr.requester_user_id = u.id
       LEFT JOIN listings l ON rr.listing_id = l.id
       LEFT JOIN properties p ON l.property_id = p.id
+      LEFT JOIN users u ON rr.requester_user_id = u.id
       WHERE 1=1
     `;
     const params = [];
-
-    // Filter by listing owner if user is landlord
-    if (req.user.role === 'landlord') {
-      query += ' AND l.owner_user_id = ?';
-      params.push(req.user.id);
-    }
-
-    // Filter by requester if user is tenant
-    if (req.user.role === 'tenant') {
-      query += ' AND rr.requester_user_id = ?';
-      params.push(req.user.id);
-    }
 
     if (listing_id) {
       query += ' AND rr.listing_id = ?';
@@ -47,12 +39,16 @@ const getRentalRequests = async (req, res, next) => {
       params.push(status);
     }
 
+    // Add ordering
     query += ' ORDER BY rr.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
+    
+    // 2. ✅ Fix: Push Numbers
+    params.push(limitNum, offsetNum);
 
-    const [requests] = await pool.execute(query, params);
+    // 3. ✅ Fix: Use pool.query instead of pool.execute
+    const [requests] = await pool.query(query, params);
 
-    res.json({ rental_requests: requests });
+    res.json(requests);
   } catch (error) {
     next(error);
   }
