@@ -1,19 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Box,
-  Button,
-  Container,
-  TextField,
-  Typography,
-  Paper,
-  Tab,
-  Tabs,
-  Alert,
-  MenuItem,
-  CircularProgress,
-} from "@mui/material";
 import { authService } from "../services/api";
+import "./AuthPage.css";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -34,12 +22,12 @@ export default function AuthPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleTabChange = (event, newValue) => {
-    setIsLogin(newValue === 0);
-    setError("");
+  const handleTabToggle = (loginState) => {
+    if (isLogin !== loginState) {
+      setIsLogin(loginState);
+      setError("");
+    }
   };
-
-  // Inside src/pages/AuthPage.jsx
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,23 +35,20 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
-      let userData; // We need to capture the user data from the response
+      let userData;
 
       if (isLogin) {
-        // Login returns { message, token, user }
         const response = await authService.login(
           formData.email,
           formData.password
         );
         userData = response.user;
       } else {
-        // Register returns { message, token, user }
         const response = await authService.register(formData);
         userData = response.user;
       }
 
-      // 🚀 DYNAMIC ROUTING BASED ON ROLE
-      // This matches the routes we defined in App.js
+      // Dynamic Routing Based on Role
       switch (userData.role) {
         case "landlord":
           navigate("/landlord/dashboard");
@@ -73,7 +58,7 @@ export default function AuthPage() {
           break;
         case "tenant":
         default:
-          navigate("/dashboard"); // Tenant dashboard
+          navigate("/dashboard");
           break;
       }
     } catch (err) {
@@ -88,128 +73,144 @@ export default function AuthPage() {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <Paper elevation={3} sx={{ p: 4, width: "100%" }}>
-          <Typography
-            component="h1"
-            variant="h4"
-            align="center"
-            gutterBottom
-            color="primary"
-          >
-            VinHousing
-          </Typography>
+    <div className="auth-container">
+      {/* Left Side Branding */}
+      <div className="auth-branding">
+        <div className="branding-content">
+          <h1 className="branding-title">VinHousing</h1>
+          <p className="branding-subtitle">
+            Find your perfect home near campus with VinUni's trusted housing network.
+          </p>
+        </div>
+      </div>
 
-          <Tabs
-            value={isLogin ? 0 : 1}
-            onChange={handleTabChange}
-            variant="fullWidth"
-            sx={{ mb: 3 }}
-          >
-            <Tab label="Login" />
-            <Tab label="Register" />
-          </Tabs>
+      {/* Right Side Form */}
+      <div className="auth-form-container">
+        <div className="auth-card">
+          <div className="auth-header">
+            <h2>{isLogin ? "Welcome Back" : "Create Account"}</h2>
+            <p>
+              {isLogin
+                ? "Enter your credentials to access your account."
+                : "Join us today and explore new listings."}
+            </p>
+          </div>
+
+          <div className="auth-tabs">
+            <button
+              className={`auth-tab ${isLogin ? "active" : ""}`}
+              onClick={() => handleTabToggle(true)}
+            >
+              Sign In
+            </button>
+            <button
+              className={`auth-tab ${!isLogin ? "active" : ""}`}
+              onClick={() => handleTabToggle(false)}
+            >
+              Sign Up
+            </button>
+          </div>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
+            <div className="alert alert-error">
+              <span>{error}</span>
+            </div>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} noValidate>
+          <form onSubmit={handleSubmit} noValidate>
             {!isLogin && (
               <>
-                <TextField
-                  margin="normal"
-                  required
-                  fullWidth
-                  id="full_name"
-                  label="Full Name"
-                  name="full_name"
-                  autoFocus
-                  value={formData.full_name}
-                  onChange={handleChange}
-                />
-                <TextField
-                  margin="normal"
-                  fullWidth
-                  id="phone"
-                  label="Phone Number"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
-                <TextField
-                  margin="normal"
-                  select
-                  fullWidth
-                  id="role"
-                  label="I am a..."
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                >
-                  <MenuItem value="tenant">
-                    Tenant (Looking for housing)
-                  </MenuItem>
-                  <MenuItem value="landlord">
-                    Landlord (Listing property)
-                  </MenuItem>
-                </TextField>
+                <div className="form-group">
+                  <label htmlFor="full_name" className="form-label">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    id="full_name"
+                    name="full_name"
+                    className="form-input"
+                    placeholder="e.g. John Doe"
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="phone" className="form-label">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    className="form-input"
+                    placeholder="e.g. 0912345678"
+                    value={formData.phone}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="role" className="form-label">
+                    I am a...
+                  </label>
+                  <select
+                    id="role"
+                    name="role"
+                    className="form-select"
+                    value={formData.role}
+                    onChange={handleChange}
+                  >
+                    <option value="tenant">Tenant (Looking for housing)</option>
+                    <option value="landlord">Landlord (Listing property)</option>
+                  </select>
+                </div>
               </>
             )}
 
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              autoFocus={isLogin}
-              value={formData.email}
-              onChange={handleChange}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={formData.password}
-              onChange={handleChange}
-            />
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                className="form-input"
+                placeholder="name@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                autoComplete="email"
+              />
+            </div>
 
-            <Button
+            <div className="form-group">
+              <label htmlFor="password" className="form-label">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                className="form-input"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                autoComplete={isLogin ? "current-password" : "new-password"}
+              />
+            </div>
+
+            <button
               type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2, height: "48px" }}
+              className="btn-primary"
               disabled={loading}
             >
-              {loading ? (
-                <CircularProgress size={24} />
-              ) : isLogin ? (
-                "Sign In"
-              ) : (
-                "Sign Up"
-              )}
-            </Button>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+              {loading ? <div className="spinner"></div> : isLogin ? "Sign In" : "Sign Up"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,200 @@
+/* src/pages/landlord/LandlordDashboard.css */
+
+/* --- Layout --- */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #333;
+}
+
+.dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.dashboard-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.dashboard-subtitle {
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+/* --- Stats Grid --- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 160px;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Card Variations */
+.stat-card.blue { border-left: 5px solid #3b82f6; }
+.stat-card.orange { border-left: 5px solid #f97316; }
+.stat-card.green { border-left: 5px solid #22c55e; }
+
+.stat-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.stat-card.blue .stat-title { color: #2563eb; }
+.stat-card.orange .stat-title { color: #ea580c; }
+.stat-card.green .stat-title { color: #16a34a; }
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #111;
+  margin: 0;
+}
+
+.stat-footer {
+  margin-top: auto;
+  font-size: 0.875rem;
+  color: #6b7280;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* --- Buttons --- */
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+}
+.btn-primary:hover { background-color: #1d4ed8; }
+
+.btn-success {
+  background-color: #10b981;
+  color: white;
+}
+.btn-success:hover { background-color: #059669; }
+
+.btn-link {
+  background: none;
+  color: #2563eb;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* --- Table Section --- */
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.table-container {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden; /* For rounded corners */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.custom-table th {
+  background-color: #f9fafb;
+  padding: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.custom-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.custom-table tr:last-child td {
+  border-bottom: none;
+}
+
+.custom-table tr:hover {
+  background-color: #f9fafb;
+}
+
+/* --- Status Badges --- */
+.badge {
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.pending {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #ffedd5;
+}
+
+/* --- Utilities --- */
+.loading-spinner {
+  text-align: center;
+  margin-top: 5rem;
+  font-size: 1.2rem;
+  color: #6b7280;
+}
+
+.error-banner {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.empty-state {
+  padding: 3rem;
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+}
