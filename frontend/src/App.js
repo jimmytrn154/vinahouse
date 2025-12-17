@@ -60,12 +60,13 @@ function App() {
         {/* PUBLIC ROUTES */}
         <Route path="/login" element={<AuthPage />} />
         <Route path="/register" element={<AuthPage />} />
+        <Route path="/" element={<Navigate to="/listings" replace />} />
+        <Route path="/listings" element={<ListingSearch />} />
+        <Route path="/listings/:id" element={<ListingDetail />} />
 
         {/* TENANT ROUTES (Role: tenant) */}
         <Route element={<ProtectedRoute allowedRoles={['tenant']} />}>
           <Route path="/dashboard" element={<TenantDashboard />} />
-          <Route path="/listings" element={<ListingSearch />} />
-          <Route path="/listings/:id" element={<ListingDetail />} />
           <Route path="/my-contracts" element={<ContractList />} />
         </Route>
 
