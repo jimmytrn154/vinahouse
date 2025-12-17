@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Grid, Paper, Typography, Box, Button, Divider } from '@mui/material';
+import {
+    Container, Grid, Paper, Typography, Box, Button, Divider, Card, CardContent,
+    CardActionArea, Avatar
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
-import { verificationService, userService, issueService } from '../../services/api';
+import { verificationService, userService, issueService, authService } from '../../services/api';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import PeopleIcon from '@mui/icons-material/People';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 export default function AdminDashboard() {
     const navigate = useNavigate();
@@ -15,20 +19,22 @@ export default function AdminDashboard() {
         totalUsers: 0,
         activeIssues: 0
     });
+    const user = authService.getCurrentUser();
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
+                // Mock data for now if API fails or returns empty
                 const [verRes, userRes, issueRes] = await Promise.all([
-                    verificationService.getAll({ status: 'pending' }),
-                    userService.getAll(),
-                    issueService.getAll()
+                    verificationService.getAll({ status: 'pending' }).catch(() => ({ data: { verifications: [] } })),
+                    userService.getAll().catch(() => ({ data: { users: [] } })),
+                    issueService.getAll().catch(() => ({ data: { issues: [] } }))
                 ]);
 
                 setStats({
-                    pendingVerifications: verRes.data.verifications.length,
-                    totalUsers: userRes.data.users.length,
-                    activeIssues: issueRes.data.issues.filter(i => i.status !== 'resolved').length
+                    pendingVerifications: verRes.data.verifications?.length || 0,
+                    totalUsers: userRes.data.users?.length || 0,
+                    activeIssues: issueRes.data.issues?.filter(i => i.status !== 'resolved').length || 0
                 });
             } catch (error) {
                 console.error("Error fetching admin stats", error);
@@ -37,80 +43,144 @@ export default function AdminDashboard() {
         fetchStats();
     }, []);
 
-    return (
-        <>
-            <Navbar title="Admin Dashboard" />
-            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                <Typography variant="h4" fontWeight="bold" gutterBottom>
-                    System Overview
-                </Typography>
+    const StatCard = ({ title, value, icon, color, gradient }) => (
+        <Card
+            elevation={3}
+            sx={{
+                height: '100%',
+                background: gradient,
+                color: 'white',
+                borderRadius: 4,
+                position: 'relative',
+                overflow: 'hidden'
+            }}
+        >
+            <Box sx={{ position: 'absolute', top: -20, right: -20, opacity: 0.2, transform: 'rotate(15deg)' }}>
+                {React.cloneElement(icon, { sx: { fontSize: 120 } })}
+            </Box>
+            <CardContent sx={{ position: 'relative', zIndex: 1, p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box>
+                        <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 500 }}>{title}</Typography>
+                        <Typography variant="h2" fontWeight="bold" sx={{ mt: 1 }}>{value}</Typography>
+                    </Box>
+                    <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                        {icon}
+                    </Avatar>
+                </Box>
+            </CardContent>
+        </Card>
+    );
 
-                <Grid container spacing={3} sx={{ mb: 4 }}>
-                    {/* Stat Cards */}
+    return (
+        <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 4 }}>
+            <Navbar title="Admin Dashboard" />
+            <Container maxWidth="lg" sx={{ mt: 4 }}>
+                <Box sx={{ mb: 5, display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ width: 64, height: 64, bgcolor: 'secondary.main' }}>
+                        <AdminPanelSettingsIcon fontSize="large" />
+                    </Avatar>
+                    <Box>
+                        <Typography variant="h4" fontWeight="bold" color="text.primary">
+                            Welcome back, {user?.full_name || 'Admin'}
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            Here's what's happening in your system today.
+                        </Typography>
+                    </Box>
+                </Box>
+
+                <Grid container spacing={3} sx={{ mb: 6 }}>
                     <Grid item xs={12} md={4}>
-                        <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: '#e3f2fd' }}>
-                            <VerifiedUserIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-                            <Typography variant="h3" color="primary" fontWeight="bold">{stats.pendingVerifications}</Typography>
-                            <Typography variant="subtitle1">Pending Verifications</Typography>
-                        </Paper>
+                        <StatCard
+                            title="Pending Verifications"
+                            value={stats.pendingVerifications}
+                            icon={<VerifiedUserIcon />}
+                            gradient="linear-gradient(135deg, #1a237e 0%, #3949ab 100%)"
+                        />
                     </Grid>
                     <Grid item xs={12} md={4}>
-                        <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: '#f3e5f5' }}>
-                            <PeopleIcon color="secondary" sx={{ fontSize: 40, mb: 1 }} />
-                            <Typography variant="h3" color="secondary" fontWeight="bold">{stats.totalUsers}</Typography>
-                            <Typography variant="subtitle1">Total Users</Typography>
-                        </Paper>
+                        <StatCard
+                            title="Total Users"
+                            value={stats.totalUsers}
+                            icon={<PeopleIcon />}
+                            gradient="linear-gradient(135deg, #ff6f00 0%, #ffca28 100%)"
+                        />
                     </Grid>
                     <Grid item xs={12} md={4}>
-                        <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', bgcolor: '#ffebee' }}>
-                            <ReportProblemIcon color="error" sx={{ fontSize: 40, mb: 1 }} />
-                            <Typography variant="h3" color="error" fontWeight="bold">{stats.activeIssues}</Typography>
-                            <Typography variant="subtitle1">Active Issues</Typography>
-                        </Paper>
+                        <StatCard
+                            title="Active Issues"
+                            value={stats.activeIssues}
+                            icon={<ReportProblemIcon />}
+                            gradient="linear-gradient(135deg, #d32f2f 0%, #ef5350 100%)"
+                        />
                     </Grid>
                 </Grid>
 
-                <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mt: 4 }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>
                     Quick Actions
                 </Typography>
-                <Divider sx={{ mb: 3 }} />
 
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
-                        <Paper sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                    <CheckCircleIcon color="success" />
-                                    <Typography variant="h6">Verification Center</Typography>
-                                </Box>
-                                <Typography color="text.secondary" paragraph>
-                                    Review and approve landlord documents, property listings, and user affiliations.
-                                </Typography>
-                            </Box>
-                            <Button variant="contained" onClick={() => navigate('/admin/verifications')}>
-                                Manage Verifications
-                            </Button>
-                        </Paper>
+                        <Card
+                            elevation={2}
+                            sx={{
+                                height: '100%',
+                                borderRadius: 3,
+                                transition: '0.3s',
+                                '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 }
+                            }}
+                        >
+                            <CardActionArea onClick={() => navigate('/admin/verifications')} sx={{ height: '100%', p: 2 }}>
+                                <CardContent>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                        <Avatar sx={{ bgcolor: 'success.light', color: 'success.dark' }}>
+                                            <VerifiedUserIcon />
+                                        </Avatar>
+                                        <Typography variant="h6" fontWeight="bold">Verification Center</Typography>
+                                    </Box>
+                                    <Typography color="text.secondary" paragraph>
+                                        Review and approve landlord documents, property listings, and user affiliations.
+                                    </Typography>
+                                    <Button endIcon={<ArrowForwardIcon />} color="success">
+                                        Go to Verifications
+                                    </Button>
+                                </CardContent>
+                            </CardActionArea>
+                        </Card>
                     </Grid>
 
                     <Grid item xs={12} md={6}>
-                        <Paper sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                    <PeopleIcon color="info" />
-                                    <Typography variant="h6">User Management</Typography>
-                                </Box>
-                                <Typography color="text.secondary" paragraph>
-                                    View all users, manage roles, and deactivate suspicious accounts.
-                                </Typography>
-                            </Box>
-                            <Button variant="contained" color="info" onClick={() => navigate('/admin/users')}>
-                                Manage Users
-                            </Button>
-                        </Paper>
+                        <Card
+                            elevation={2}
+                            sx={{
+                                height: '100%',
+                                borderRadius: 3,
+                                transition: '0.3s',
+                                '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 }
+                            }}
+                        >
+                            <CardActionArea onClick={() => navigate('/admin/users')} sx={{ height: '100%', p: 2 }}>
+                                <CardContent>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                        <Avatar sx={{ bgcolor: 'info.light', color: 'info.dark' }}>
+                                            <PeopleIcon />
+                                        </Avatar>
+                                        <Typography variant="h6" fontWeight="bold">User Management</Typography>
+                                    </Box>
+                                    <Typography color="text.secondary" paragraph>
+                                        View all users, manage roles, and deactivate suspicious accounts.
+                                    </Typography>
+                                    <Button endIcon={<ArrowForwardIcon />} color="info">
+                                        Manage Users
+                                    </Button>
+                                </CardContent>
+                            </CardActionArea>
+                        </Card>
                     </Grid>
                 </Grid>
             </Container>
-        </>
+        </Box>
     );
 }
