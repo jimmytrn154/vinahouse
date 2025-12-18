@@ -61,33 +61,62 @@ const getListings = async (req, res, next) => {
 };
 
 // Get listing by ID
+// const getListingById = async (req, res, next) => {
+//   try {
+//     const { id } = req.params;
+
+//     const [listings] = await pool.execute(
+//       `SELECT l.*, 
+//               u.full_name as owner_name,
+//               p.address as property_address,
+//               r.room_name,
+//               lf.features_json
+//        FROM listings l
+//        LEFT JOIN users u ON l.owner_user_id = u.id
+//        LEFT JOIN properties p ON l.property_id = p.id
+//        LEFT JOIN rooms r ON l.room_id = r.id
+//        LEFT JOIN listing_features lf ON l.id = lf.listing_id
+//        WHERE l.id = ?`,
+//       [id]
+//     );
+
+//     if (listings.length === 0) {
+//       return res.status(404).json({ error: 'Listing not found.' });
+//     }
+
+//     const listing = listings[0];
+//     if (listing.features_json) {
+//       listing.features_json = JSON.parse(listing.features_json);
+//     }
+
+//     res.json({ listing });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 const getListingById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const [listings] = await pool.execute(
-      `SELECT l.*, 
-              u.full_name as owner_name,
-              p.address as property_address,
-              r.room_name,
-              lf.features_json
-       FROM listings l
-       LEFT JOIN users u ON l.owner_user_id = u.id
-       LEFT JOIN properties p ON l.property_id = p.id
-       LEFT JOIN rooms r ON l.room_id = r.id
-       LEFT JOIN listing_features lf ON l.id = lf.listing_id
-       WHERE l.id = ?`,
+    // ✅ Change: Query the VIEW instead of the raw table
+    const [listings] = await pool.query(
+      `SELECT * FROM v_searchable_listings WHERE id = ?`,
       [id]
     );
 
     if (listings.length === 0) {
-      return res.status(404).json({ error: 'Listing not found.' });
+      return res.status(404).json({ error: 'Listing not found' });
     }
 
     const listing = listings[0];
-    if (listing.features_json) {
-      listing.features_json = JSON.parse(listing.features_json);
-    }
+
+    // Parse features JSON if it exists
+    try {
+        if (typeof listing.features_json === 'string') {
+            listing.features_json = JSON.parse(listing.features_json);
+        }
+    } catch (e) { listing.features_json = {}; }
 
     res.json({ listing });
   } catch (error) {
@@ -147,6 +176,38 @@ const createListing = async (req, res, next) => {
         return res.status(403).json({ error: 'You do not own this property.' });
       }
     }
+    
+
+        // 1. Check for EXACT duplicates (Same Room or Same Whole House)
+    const [existing] = await pool.query(
+      `SELECT id FROM listings 
+      WHERE property_id = ? 
+      AND (room_id = ? OR (room_id IS NULL AND ? IS NULL))
+      AND status IN ('verified', 'pending_verification')`,
+      [property_id, room_id, room_id]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'An active listing already exists for this unit.' });
+    }
+
+    // 2. Check for CONFLICTS (Whole House vs Room)
+    if (room_id) {
+      // If listing a Room, fail if "Whole House" is already listed
+      const [houseConflict] = await pool.query(
+        `SELECT id FROM listings WHERE property_id = ? AND room_id IS NULL AND status IN ('verified', 'pending_verification')`,
+        [property_id]
+      );
+      if (houseConflict.length > 0) return res.status(400).json({ error: 'Cannot list room: The whole property is already listed.' });
+    } else {
+      // If listing Whole House, fail if ANY Room is already listed
+      const [roomConflict] = await pool.query(
+        `SELECT id FROM listings WHERE property_id = ? AND room_id IS NOT NULL AND status IN ('verified', 'pending_verification')`,
+        [property_id]
+      );
+      if (roomConflict.length > 0) return res.status(400).json({ error: 'Cannot list whole property: Individual rooms are currently listed.' });
+    }
+
 
     const [result] = await pool.execute(
       'INSERT INTO listings (owner_user_id, property_id, room_id, price, deposit, available_from, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
