@@ -74,7 +74,8 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['tenant']} />}>
           <Route path="/dashboard" element={<TenantDashboard />} />
           <Route path="/tenant/dashboard" element={<TenantDashboard />} />
-          <Route path="/my-contracts" element={<ContractList />} />
+          {/* <Route path="/my-contracts" element={<ContractList />} /> */}
+          <Route path="/my-contracts" element={<Contracts/>} />
         </Route>
 
         {/* LANDLORD ROUTES (Role: landlord) */}
@@ -83,6 +84,7 @@ function App() {
           <Route path="/landlord" element={<Navigate to="/landlord/dashboard" replace />} />
           <Route path="/landlord/create-listing/:propertyId" element={<CreateListing />} />
           <Route path="/landlord/properties" element={<MyProperties />} />
+          <Route path="/landlord/contracts" element={<Contracts />} />
         </Route>
 
         {/* ADMIN ROUTES (Role: admin) */}

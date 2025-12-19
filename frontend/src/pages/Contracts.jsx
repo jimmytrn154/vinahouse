@@ -34,7 +34,7 @@ const Contracts = () => {
             return;
         }
         fetchContracts();
-    }, [user]);
+    }, [user?.id]);
 
     useEffect(() => {
         if (selectedContract) {

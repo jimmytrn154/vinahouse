@@ -60,6 +60,8 @@ export const propertyService = {
   getById: (id) => api.get(`/properties/${id}`),
   create: (data) => api.post('/properties', data),
   // Note: Your properties.js route for rooms is router.post('/:id/rooms', ...)
+  update: (id, data) => api.put(`/properties/${id}`, data), 
+  delete: (id) => api.delete(`/properties/${id}`),
   createRoom: (propertyId, data) => api.post(`/properties/${propertyId}/rooms`, data),
 };
 
@@ -75,7 +77,7 @@ export const listingService = {
 
 // --- RENTAL REQUEST SERVICE ---
 export const requestService = {
-  getAll: () => api.get('/rental-requests'),
+  getAll: (params) => api.get('/rental-requests', { params }),
   getById: (id) => api.get(`/rental-requests/${id}`),
   create: (data) => api.post('/rental-requests', data),
   updateStatus: (id, status) => api.put(`/rental-requests/${id}/status`, { status }),
