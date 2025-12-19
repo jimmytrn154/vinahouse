@@ -162,6 +162,16 @@ export default function ListingSearch() {
                       />
                     )}
                   </Box>
+                  <Box sx={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 1 }}>
+                    {l.status === 'rented' && (
+                      <Chip
+                        icon={<VerifiedIcon sx={{ color: 'white !important', fontSize: '1rem' }} />}
+                        label="Rented"
+                        size="small"
+                        sx={{ bgcolor: 'success.main', color: 'white', fontWeight: 'bold', boxShadow: 1 }}
+                      />
+                    )}
+                  </Box>
                   <Box
                     sx={{
                       position: 'absolute',

@@ -8,7 +8,7 @@ BEFORE UPDATE ON contracts
 FOR EACH ROW
 BEGIN
     -- Only react when status changes into 'active'
-    IF NEW.status = 'active' AND OLD.status <> 'active' THEN
+    IF NEW.status = 'signed' AND OLD.status <> 'signed' THEN
         
         -- 1) Ensure signed_at is set when contract becomes active
         IF NEW.signed_at IS NULL THEN
