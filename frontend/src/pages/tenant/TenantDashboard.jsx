@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Grid, Paper, Typography, Button, Box, Chip, Divider, List, ListItem, ListItemText, ListItemAvatar, Avatar } from '@mui/material';
+import { 
+  Container, Grid, Paper, Typography, Button, Box, Chip, Divider, 
+  List, ListItem, ListItemText, ListItemAvatar, Avatar,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, FormControl, InputLabel, Select
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import { authService, requestService, contractService, issueService } from '../../services/api';
@@ -10,27 +14,40 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 export default function TenantDashboard() {
     const navigate = useNavigate();
     const user = authService.getCurrentUser();
+    
+    // Data States
     const [requests, setRequests] = useState([]);
     const [contracts, setContracts] = useState([]);
     const [issues, setIssues] = useState([]);
 
+    // Modal States
+    const [openIssueModal, setOpenIssueModal] = useState(false);
+    const [issueForm, setIssueForm] = useState({
+        contract_id: '',
+        title: '',
+        description: '',
+        category: 'maintenance',
+        severity: 'medium'
+    });
+
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [reqRes, conRes, issRes] = await Promise.all([
-                    requestService.getAll(),
-                    contractService.getAll(),
-                    issueService.getAll()
-                ]);
-                setRequests(reqRes.data.requests || []);
-                setContracts(conRes.data.contracts || []);
-                setIssues(issRes.data.issues || []);
-            } catch (error) {
-                console.error("Error fetching dashboard data", error);
-            }
-        };
         fetchData();
     }, []);
+
+    const fetchData = async () => {
+        try {
+            const [reqRes, conRes, issRes] = await Promise.all([
+                requestService.getAll(),
+                contractService.getAll(),
+                issueService.getAll()
+            ]);
+            setRequests(reqRes.data.requests || []);
+            setContracts(conRes.data.contracts || []);
+            setIssues(issRes.data.issues || []);
+        } catch (error) {
+            console.error("Error fetching dashboard data", error);
+        }
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -38,6 +55,38 @@ export default function TenantDashboard() {
             case 'rejected': return 'error';
             case 'pending': return 'warning';
             default: return 'default';
+        }
+    };
+
+    // --- Handlers ---
+    
+    const handleOpenReportModal = () => {
+        if (contracts.length === 0) {
+            alert("You need an active rental contract to report an issue.");
+            return;
+        }
+        // Auto-select the first contract if only one exists
+        setIssueForm(prev => ({
+            ...prev,
+            contract_id: contracts.length === 1 ? contracts[0].id : ''
+        }));
+        setOpenIssueModal(true);
+    };
+
+    const handleIssueSubmit = async () => {
+        if (!issueForm.contract_id || !issueForm.title || !issueForm.description) {
+            alert("Please fill in all required fields.");
+            return;
+        }
+
+        try {
+            await issueService.create(issueForm);
+            alert("Issue reported successfully!");
+            setOpenIssueModal(false);
+            setIssueForm({ contract_id: '', title: '', description: '', category: 'maintenance', severity: 'medium' });
+            fetchData(); // Refresh list
+        } catch (err) {
+            alert("Failed to report issue: " + (err.response?.data?.error || err.message));
         }
     };
 
@@ -138,12 +187,20 @@ export default function TenantDashboard() {
                         </Paper>
                     </Grid>
 
-                    {/* Issues */}
+                    {/* Issues Section */}
                     <Grid item xs={12}>
                         <Paper sx={{ p: 3, borderRadius: 4, boxShadow: 3 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                 <Typography variant="h5" fontWeight="bold">Reported Issues</Typography>
-                                <Button startIcon={<ReportProblemIcon />} variant="outlined" size="small">Report New Issue</Button>
+                                {/* ✅ ACTIVATED BUTTON */}
+                                <Button 
+                                    startIcon={<ReportProblemIcon />} 
+                                    variant="outlined" 
+                                    size="small"
+                                    onClick={handleOpenReportModal}
+                                >
+                                    Report New Issue
+                                </Button>
                             </Box>
                             <Divider sx={{ mb: 2 }} />
                             {issues.length === 0 ? (
@@ -156,8 +213,12 @@ export default function TenantDashboard() {
                                                 <Typography variant="subtitle1" fontWeight="bold">{issue.title}</Typography>
                                                 <Typography variant="body2" color="text.secondary" noWrap>{issue.description}</Typography>
                                                 <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                                                    <Chip label={issue.status} size="small" />
-                                                    <Typography variant="caption" color="text.secondary">{new Date(issue.created_at).toLocaleDateString()}</Typography>
+                                                    <Chip label={issue.status} size="small" 
+                                                        color={issue.status === 'resolved' ? 'success' : 'default'} 
+                                                    />
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {new Date(issue.created_at).toLocaleDateString()}
+                                                    </Typography>
                                                 </Box>
                                             </Paper>
                                         </Grid>
@@ -167,6 +228,92 @@ export default function TenantDashboard() {
                         </Paper>
                     </Grid>
                 </Grid>
+
+                {/* ✅ REPORT ISSUE MODAL */}
+                <Dialog open={openIssueModal} onClose={() => setOpenIssueModal(false)} maxWidth="sm" fullWidth>
+                    <DialogTitle>Report an Issue</DialogTitle>
+                    <DialogContent>
+                        <Box component="form" sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            
+                            {/* 1. Contract Selection (Required) */}
+                            <FormControl fullWidth>
+                                <InputLabel>Select Property (Contract)</InputLabel>
+                                <Select
+                                    value={issueForm.contract_id}
+                                    label="Select Property (Contract)"
+                                    onChange={(e) => setIssueForm({ ...issueForm, contract_id: e.target.value })}
+                                >
+                                    {contracts.map(con => (
+                                        <MenuItem key={con.id} value={con.id}>
+                                            {con.property_address || `Contract #${con.id}`}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+
+                            {/* 2. Issue Title */}
+                            <TextField
+                                label="Issue Title"
+                                fullWidth
+                                required
+                                placeholder="e.g., Leaky Faucet in Bathroom"
+                                value={issueForm.title}
+                                onChange={(e) => setIssueForm({ ...issueForm, title: e.target.value })}
+                            />
+
+                            {/* 3. Category & Severity */}
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Category</InputLabel>
+                                    <Select
+                                        value={issueForm.category}
+                                        label="Category"
+                                        onChange={(e) => setIssueForm({ ...issueForm, category: e.target.value })}
+                                    >
+                                        <MenuItem value="maintenance">Maintenance</MenuItem>
+                                        <MenuItem value="noise">Noise Complaint</MenuItem>
+                                        <MenuItem value="safety">Safety Concern</MenuItem>
+                                        <MenuItem value="hygiene">Hygiene/Cleanliness</MenuItem>
+                                        <MenuItem value="contract_dispute">Contract Dispute</MenuItem>
+                                        <MenuItem value="other">Other</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                <FormControl fullWidth>
+                                    <InputLabel>Severity</InputLabel>
+                                    <Select
+                                        value={issueForm.severity}
+                                        label="Severity"
+                                        onChange={(e) => setIssueForm({ ...issueForm, severity: e.target.value })}
+                                    >
+                                        <MenuItem value="low">Low</MenuItem>
+                                        <MenuItem value="medium">Medium</MenuItem>
+                                        <MenuItem value="high">High</MenuItem>
+                                        <MenuItem value="critical">Critical</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Box>
+
+                            {/* 4. Description */}
+                            <TextField
+                                label="Detailed Description"
+                                fullWidth
+                                multiline
+                                rows={4}
+                                required
+                                value={issueForm.description}
+                                onChange={(e) => setIssueForm({ ...issueForm, description: e.target.value })}
+                            />
+                        </Box>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setOpenIssueModal(false)} color="inherit">Cancel</Button>
+                        <Button onClick={handleIssueSubmit} variant="contained" color="error">
+                            Submit Report
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
             </Container>
         </>
     );

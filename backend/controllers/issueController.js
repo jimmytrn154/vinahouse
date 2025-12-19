@@ -122,7 +122,7 @@ const createIssue = async (req, res, next) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { contract_id, category, severity, description, sla_hours } = req.body;
+    const { contract_id, title, category, severity, description, sla_hours } = req.body;
     const reporter_user_id = req.user.id;
 
     // Verify contract access
@@ -143,9 +143,11 @@ const createIssue = async (req, res, next) => {
       return res.status(403).json({ error: 'You do not have access to this contract.' });
     }
 
+    const assignee_user_id = contract.landlord_user_id;
+
     const [result] = await pool.execute(
-      'INSERT INTO issue_reports (contract_id, reporter_user_id, category, severity, description, sla_hours, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [contract_id, reporter_user_id, category, severity || 'medium', description, sla_hours || 24, 'open']
+      'INSERT INTO issue_reports (contract_id, reporter_user_id, assignee_user_id, title, category, severity, description, sla_hours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [contract_id, reporter_user_id, assignee_user_id, title, category, severity || 'medium', description, sla_hours || 24, 'open']
     );
 
     // Create initial status history
@@ -173,10 +175,12 @@ const updateIssueStatus = async (req, res, next) => {
 
     // Get current issue
     const [issues] = await pool.execute(
-      'SELECT status, assignee_user_id FROM issue_reports WHERE id = ?',
+      `SELECT ir.*, c.landlord_user_id 
+       FROM issue_reports ir
+       JOIN contracts c ON ir.contract_id = c.id
+       WHERE ir.id = ?`,
       [id]
     );
-
     if (issues.length === 0) {
       return res.status(404).json({ error: 'Issue not found.' });
     }
@@ -185,8 +189,11 @@ const updateIssueStatus = async (req, res, next) => {
     const oldStatus = currentIssue.status;
 
     // Only admin can change status to triaged/in_progress/resolved/rejected
-    if (['triaged', 'in_progress', 'resolved', 'rejected'].includes(status) && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can update issue status to this value.' });
+    const isLandlord = req.user.id === currentIssue.landlord_user_id;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isLandlord && !isAdmin) {
+      return res.status(403).json({ error: 'Only the Landlord or Admin can update this issue.' });
     }
 
     // Build update query
@@ -204,7 +211,9 @@ const updateIssueStatus = async (req, res, next) => {
     }
 
     if (status === 'resolved') {
-      updates.push('resolved_at = NOW()');
+      updates.push('resolved_at = NOW()'); // Stamp the finish time
+    } else if (status === 'in_progress' || status === 'open') {
+      updates.push('resolved_at = NULL'); // Clear it if reopened
     }
 
     if (updates.length > 0) {
@@ -273,6 +282,7 @@ const addAttachment = async (req, res, next) => {
 // Validation rules
 const createIssueValidation = [
   body('contract_id').isInt().withMessage('Contract ID is required'),
+  body('title').trim().isLength({ min: 1, max: 255 }).withMessage('Title is required (max 255 chars)'),
   body('category').isIn(['maintenance', 'scam', 'safety', 'noise', 'hygiene', 'contract_dispute', 'other']).withMessage('Invalid category'),
   body('severity').optional().isIn(['low', 'medium', 'high', 'critical']),
   body('description').trim().isLength({ min: 1 }).withMessage('Description is required'),

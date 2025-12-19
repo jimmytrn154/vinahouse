@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { listingService, requestService, authService } from '../../services/api';
+import { listingService, requestService, authService, issueService } from '../../services/api';
 import Navbar from '../../components/Navbar';
 import './LandlordDashboard.css'; // Import the custom styles
 
@@ -8,6 +8,7 @@ export default function LandlordDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ listings: 0, requests: 0, contracts: 0 });
   const [recentRequests, setRecentRequests] = useState([]);
+  const [myIssues, setMyIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -16,29 +17,33 @@ export default function LandlordDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Fetch Listings
-        const listingsRes = await listingService.getAll({ owner_id: user.id });
-        
-        // 2. Fetch Requests
-        const requestsRes = await requestService.getAll({ owner_id: user.id });
+        // Fetch all data in parallel
+        const [listingsRes, requestsRes, issuesRes] = await Promise.all([
+            listingService.getAll({ owner_id: user.id }),
+            requestService.getAll({ owner_id: user.id }),
+            issueService.getAll() // ✅ Backend automatically filters for this landlord
+        ]);
 
-        // Handle array safety
-        const allListings = Array.isArray(listingsRes.data.listings) ? listingsRes.data.listings : [];
-        const allRequests = Array.isArray(requestsRes.data) ? requestsRes.data : [];
-        
-        // Filter pending
-        const pending = allRequests.filter(r => r.status === 'pending');
+        const allListings = listingsRes.data.listings || [];
+        const allRequests = requestsRes.data || []; 
+        const allIssues = issuesRes.data.issues || [];
+
+        const pendingRequests = allRequests.filter(r => r.status === 'pending');
+        const activeIssues = allIssues.filter(i => i.status !== 'resolved');
 
         setStats({
           listings: allListings.length,
-          requests: pending.length,
-          contracts: 0 
+          requests: pendingRequests.length,
+          contracts: 0, // Placeholder if you implement contracts count later
+          issues: activeIssues.length
         });
 
-        setRecentRequests(pending.slice(0, 5));
+        setRecentRequests(pendingRequests.slice(0, 5));
+        setMyIssues(allIssues);
+
       } catch (err) {
         console.error("Dashboard fetch error:", err);
-        setError('Failed to load dashboard data. Check your connection.');
+        setError('Failed to load dashboard data.');
       } finally {
         setLoading(false);
       }
@@ -48,18 +53,29 @@ export default function LandlordDashboard() {
   }, [user.id]);
 
   const handleAcceptRequest = async (requestId) => {
-    // Note: You would likely implement a proper modal or confirmation here
-    // For now, we keep the alert logic but styling is not blocked by MUI
     if(!window.confirm("Accept this rental request?")) return;
-    
     try {
-        // Assume requestService.updateStatus exists based on previous convos
         await requestService.updateStatus(requestId, 'accepted');
         setRecentRequests(prev => prev.filter(r => r.id !== requestId));
         setStats(prev => ({ ...prev, requests: prev.requests - 1 }));
     } catch (err) {
         alert("Error: " + err.message);
     }
+  };
+
+  const handleResolveIssue = async (issueId) => {
+      if(!window.confirm("Mark this issue as Resolved?")) return;
+      try {
+          await issueService.updateStatus(issueId, 'resolved');
+          // Optimistic update
+          setMyIssues(prev => prev.map(i => 
+              i.id === issueId ? { ...i, status: 'resolved', resolved_at: new Date().toISOString() } : i
+          ));
+          // Update stats if needed (internal state only since we don't show the pill)
+          setStats(prev => ({ ...prev, issues: prev.issues - 1 }));
+      } catch (err) {
+          alert("Failed to update issue.");
+      }
   };
 
   if (loading) return (
@@ -82,7 +98,7 @@ export default function LandlordDashboard() {
 
         {error && <div className="error-banner">{error}</div>}
 
-        {/* Stats Grid */}
+        {/* Stats Grid (Unchanged 3 Pills) */}
         <div className="stats-grid">
           {/* Card 1: Listings */}
           <div className="stat-card blue">
@@ -111,7 +127,7 @@ export default function LandlordDashboard() {
           </div>
 
           {/* Card 3: Contracts */}
-          <div className="stat-card green" style={{ cursor: 'pointer' }} onClick={() => navigate('/contracts')}>
+          <div className="stat-card green" style={{ cursor: 'pointer' }} onClick={() => navigate('/landlord/contracts')}>
             <div>
               <div className="stat-title">Active Contracts</div>
               <div className="stat-value">{stats.contracts}</div>
@@ -124,7 +140,7 @@ export default function LandlordDashboard() {
         </div>
 
         {/* Recent Requests Section */}
-        <section>
+        <section style={{ marginBottom: '3rem' }}>
           <h2 className="section-title">Incoming Rental Requests</h2>
           <div className="table-container">
             {recentRequests.length === 0 ? (
@@ -160,6 +176,71 @@ export default function LandlordDashboard() {
                         >
                           Accept
                         </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+
+        {/* ✅ NEW: Maintenance & Issues Section */}
+        <section>
+          <h2 className="section-title">Maintenance & Issues</h2>
+          <div className="table-container">
+            {myIssues.length === 0 ? (
+              <div className="empty-state">
+                <p>No issues reported. Your properties are in great shape!</p>
+              </div>
+            ) : (
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Issue</th>
+                    <th>Category</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Reported On</th>
+                    <th style={{ textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {myIssues.map((issue) => (
+                    <tr key={issue.id}>
+                      <td>
+                          <div style={{ fontWeight: 600 }}>{issue.title}</div>
+                          <div style={{ fontSize: '0.85rem', color: '#666' }}>{issue.description}</div>
+                      </td>
+                      <td>
+                          <span style={{ textTransform: 'capitalize' }}>{issue.category.replace('_', ' ')}</span>
+                      </td>
+                      <td>
+                          <span style={{ 
+                              color: issue.severity === 'high' || issue.severity === 'critical' ? '#dc2626' : '#4b5563',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              fontSize: '0.75rem'
+                          }}>
+                              {issue.severity}
+                          </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${issue.status === 'resolved' ? 'verified' : 'pending'}`}>
+                          {issue.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </td>
+                      <td>{new Date(issue.created_at).toLocaleDateString()}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {issue.status !== 'resolved' && (
+                            <button 
+                              className="btn btn-primary"
+                              onClick={() => handleResolveIssue(issue.id)}
+                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                            >
+                              Mark Done
+                            </button>
+                        )}
                       </td>
                     </tr>
                   ))}

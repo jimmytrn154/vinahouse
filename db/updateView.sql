@@ -1,3 +1,5 @@
+ALTER TABLE issue_reports 
+ADD COLUMN title VARCHAR(255) NOT NULL AFTER category;
 -- Add image column within properties. Consider to add img for rooms also?
 ALTER TABLE properties ADD COLUMN image_url TEXT DEFAULT NULL;
 -- run this view instead
