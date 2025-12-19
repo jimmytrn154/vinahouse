@@ -20,8 +20,8 @@ export default function LandlordDashboard() {
         const listingsRes = await listingService.getAll({ owner_id: user.id });
         
         // 2. Fetch Requests
-        const requestsRes = await requestService.getAll();
-        
+        const requestsRes = await requestService.getAll({ owner_id: user.id });
+
         // Handle array safety
         const allListings = Array.isArray(listingsRes.data.listings) ? listingsRes.data.listings : [];
         const allRequests = Array.isArray(requestsRes.data) ? requestsRes.data : [];

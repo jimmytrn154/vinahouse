@@ -34,8 +34,13 @@ export default function MyProperties() {
   // ✅ NEW: Property Details Modal State
   const [viewPropDetails, setViewPropDetails] = useState(null); // Stores the full property object (with rooms)
 
+  // ✅ NEW: Edit Mode State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState(null);
+
   // Forms
-  const [propForm, setPropForm] = useState({ address: "", description: "" });
+  // ✅ ADDED: image_url to state
+  const [propForm, setPropForm] = useState({ address: "", description: "", image_url: "" });
   const [roomForm, setRoomForm] = useState({
     room_name: "",
     capacity: 1,
@@ -79,6 +84,26 @@ export default function MyProperties() {
     }
   };
 
+  // ✅ UPDATED: Open Create Modal
+  const openCreateModal = () => {
+    setPropForm({ address: "", description: "", image_url: "" }); // Clear form
+    setIsEditing(false);
+    setOpenPropDialog(true);
+  };
+
+  // ✅ NEW: Open Edit Modal
+  const openEditModal = (e, prop) => {
+    e.stopPropagation(); // Stop card click
+    setPropForm({ 
+      address: prop.address, 
+      description: prop.description || "", 
+      image_url: prop.image_url || "" 
+    });
+    setEditId(prop.id);
+    setIsEditing(true);
+    setOpenPropDialog(true);
+  };
+
   const handleDeleteProperty = async (e, id) => {
     e.stopPropagation(); // Stop card click
     if (
@@ -111,15 +136,32 @@ export default function MyProperties() {
     }
   };
 
-  const handleCreateProperty = async (e) => {
+  // ✅ UPDATED: Handle Submit (Create or Update)
+  const handlePropertyFormSubmit = async (e) => {
     e.preventDefault();
     try {
-      await propertyService.create(propForm);
+      if (isEditing) {
+        // UPDATE Logic
+        await propertyService.update(editId, propForm);
+        alert("Property updated successfully!");
+      } else {
+        // CREATE Logic
+        await propertyService.create(propForm);
+        alert("Property created successfully!");
+      }
       setOpenPropDialog(false);
-      setPropForm({ address: "", description: "" });
-      fetchData(); // Refresh both lists
+      fetchData(); // Refresh list
     } catch (err) {
-      alert(err.response?.data?.error || "Error");
+      console.error("Full Error Object:", err); // Check Console for details
+      
+      // ✅ FIX: Check for multiple error formats
+      const errorMsg = 
+        err.response?.data?.error ||                 // Standard error
+        err.response?.data?.errors?.[0]?.msg ||      // Validation array
+        err.message ||                               // Network error
+        "Error saving property";
+        
+      alert(errorMsg);
     }
   };
 
@@ -164,9 +206,10 @@ export default function MyProperties() {
               Manage your buildings, rooms, and active ads.
             </p>
           </div>
+          {/* ✅ UPDATED: Use openCreateModal */}
           <button
             className="btn btn-primary"
-            onClick={() => setOpenPropDialog(true)}
+            onClick={openCreateModal}
           >
             + New Property
           </button>
@@ -206,6 +249,15 @@ export default function MyProperties() {
                   key={prop.id}
                   onClick={() => handleViewProperty(prop.id)}
                 >
+                  {/* ✅ NEW: Show Image on Card */}
+                  <div style={{ height: '180px', overflow: 'hidden', borderRadius: '8px 8px 0 0', marginBottom: '1rem', marginLeft: '-1.5rem', marginRight: '-1.5rem', marginTop: '-1.5rem' }}>
+                      <img 
+                          src={prop.image_url || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=500&q=60"} 
+                          alt="Property" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                  </div>
+
                   {/* Clicking card now opens details */}
                   <div className="property-content clickable">
                     <div className="property-address">{prop.address}</div>
@@ -230,6 +282,15 @@ export default function MyProperties() {
                     >
                       + Room
                     </button>
+                    
+                    {/* ✅ NEW: Edit Button */}
+                    <button 
+                        className="btn btn-outline"
+                        onClick={(e) => openEditModal(e, prop)}
+                    >
+                        ✏️
+                    </button>
+
                     <button
                       className="btn btn-primary"
                       onClick={() =>
@@ -238,6 +299,8 @@ export default function MyProperties() {
                     >
                       Post Ad
                     </button>
+                    
+                    {/* Delete Button */}
                     <button
                       className="btn btn-outline"
                       style={{ color: "#ef4444", borderColor: "#ef4444" }}
@@ -312,7 +375,6 @@ export default function MyProperties() {
                     >
                       Remove
                     </button>
-                    {/* Add Delete/Edit logic here later */}
                   </div>
                 </div>
               ))
@@ -320,15 +382,18 @@ export default function MyProperties() {
           </div>
         )}
 
-        {/* --- MODAL 1: ADD PROPERTY --- */}
+        {/* --- MODAL 1: ADD / EDIT PROPERTY --- */}
         {openPropDialog && (
           <div
             className="modal-overlay"
             onClick={() => setOpenPropDialog(false)}
           >
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <h2 className="modal-title">Add New Property</h2>
-              <form onSubmit={handleCreateProperty}>
+              <h2 className="modal-title">
+                {isEditing ? "Edit Property" : "Add New Property"}
+              </h2>
+              {/* ✅ UPDATED: Use handlePropertyFormSubmit */}
+              <form onSubmit={handlePropertyFormSubmit}>
                 <div className="form-group">
                   <label className="form-label">Full Address</label>
                   <input
@@ -342,6 +407,27 @@ export default function MyProperties() {
                     }
                   />
                 </div>
+
+                {/* ✅ NEW: Image URL Input */}
+                <div className="form-group">
+                  <label className="form-label">Property Image URL</label>
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="https://example.com/image.jpg"
+                    value={propForm.image_url}
+                    onChange={(e) => setPropForm({ ...propForm, image_url: e.target.value })}
+                  />
+                  {propForm.image_url && (
+                    <img 
+                      src={propForm.image_url} 
+                      alt="Preview" 
+                      style={{ width: '100%', height: '150px', objectFit: 'cover', marginTop: '10px', borderRadius: '8px' }} 
+                      onError={(e) => e.target.style.display = 'none'} 
+                    />
+                  )}
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">Description</label>
                   <textarea
@@ -362,7 +448,7 @@ export default function MyProperties() {
                     Cancel
                   </button>
                   <button type="submit" className="btn btn-primary">
-                    Create
+                    {isEditing ? "Save Changes" : "Create"}
                   </button>
                 </div>
               </form>
@@ -392,7 +478,6 @@ export default function MyProperties() {
                     }
                   />
                 </div>
-                {/* ... (Existing Room Fields) ... */}
                 <div
                   style={{
                     display: "grid",

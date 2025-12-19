@@ -4,7 +4,7 @@ const { body, validationResult } = require('express-validator');
 // Get all rental requests
 const getRentalRequests = async (req, res, next) => {
   try {
-    const { listing_id, requester_id, status, page = 1, limit = 20 } = req.query;
+    const { listing_id, requester_id, status, owner_id, page = 1, limit = 20 } = req.query;
 
     // 1. ✅ Fix: Force Integer Conversion
     const limitNum = parseInt(limit, 10);
@@ -24,6 +24,11 @@ const getRentalRequests = async (req, res, next) => {
     `;
     const params = [];
 
+    if (owner_id) {
+      query += ' AND l.owner_user_id = ?';
+      params.push(owner_id);
+    }
+    
     if (listing_id) {
       query += ' AND rr.listing_id = ?';
       params.push(listing_id);
@@ -162,6 +167,12 @@ const updateRentalRequestStatus = async (req, res, next) => {
     }
 
     const request = requests[0];
+    console.log("--- DEBUG PERMISSIONS ---");
+    console.log("Listing ID:", request.listing_id);
+    console.log("Real Owner ID (DB):", request.owner_user_id);
+    console.log("Current User ID (You):", req.user.id);
+    console.log("-------------------------");
+
 
     // Check permissions
     if (status === 'cancelled') {
