@@ -41,7 +41,7 @@ const getRentalRequests = async (req, res, next) => {
 
     // Add ordering
     query += ' ORDER BY rr.created_at DESC LIMIT ? OFFSET ?';
-    
+
     // 2. ✅ Fix: Push Numbers
     params.push(limitNum, offsetNum);
 
@@ -150,7 +150,7 @@ const updateRentalRequestStatus = async (req, res, next) => {
 
     // Get rental request
     const [requests] = await pool.execute(
-      `SELECT rr.*, l.owner_user_id 
+      `SELECT rr.*, l.owner_user_id, l.price, l.deposit 
        FROM rental_requests rr
        JOIN listings l ON rr.listing_id = l.id
        WHERE rr.id = ?`,
@@ -184,6 +184,34 @@ const updateRentalRequestStatus = async (req, res, next) => {
       'UPDATE rental_requests SET status = ? WHERE id = ?',
       [status, id]
     );
+
+    // If accepted, create a draft contract automatically
+    if (status === 'accepted') {
+      // Check if contract already exists to prevent duplicates
+      const [existingContract] = await pool.execute(
+        'SELECT id FROM contracts WHERE listing_id = ? AND landlord_user_id = ? AND status != "cancelled"',
+        [request.listing_id, request.owner_user_id]
+      );
+
+      // Only create if no active/draft contract exists (basic check)
+      if (existingContract.length === 0) {
+        const startDate = request.desired_move_in || new Date();
+        const rent = request.price || 0;
+        const deposit = request.deposit || 0;
+
+        const [contractResult] = await pool.execute(
+          'INSERT INTO contracts (listing_id, landlord_user_id, start_date, rent, deposit, status) VALUES (?, ?, ?, ?, ?, ?)',
+          [request.listing_id, request.owner_user_id, startDate, rent, deposit, 'draft']
+        );
+
+        const newContractId = contractResult.insertId;
+
+        await pool.execute(
+          'INSERT INTO contract_tenants (contract_id, tenant_user_id) VALUES (?, ?)',
+          [newContractId, request.requester_user_id]
+        );
+      }
+    }
 
     const [updated] = await pool.execute(
       'SELECT * FROM rental_requests WHERE id = ?',

@@ -80,6 +80,7 @@ const getContractById = async (req, res, next) => {
               u_landlord.full_name as landlord_name,
               u_landlord.email as landlord_email,
               l.price as listing_price,
+              l.id as listing_id,
               p.address as property_address
        FROM contracts c
        LEFT JOIN users u_landlord ON c.landlord_user_id = u_landlord.id
@@ -94,6 +95,21 @@ const getContractById = async (req, res, next) => {
     }
 
     const contract = contracts[0];
+
+    // Check authorization: user must be either the landlord or a tenant
+    const isLandlord = contract.landlord_user_id === req.user.id;
+    
+    // Check if user is a tenant
+    const [tenantCheck] = await pool.execute(
+      'SELECT 1 FROM contract_tenants WHERE contract_id = ? AND tenant_user_id = ?',
+      [id, req.user.id]
+    );
+    const isTenant = tenantCheck.length > 0;
+
+    // Admin can access all contracts
+    if (!isLandlord && !isTenant && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You are not authorized to view this contract.' });
+    }
 
     // Get tenants
     const [tenants] = await pool.execute(
@@ -114,6 +130,47 @@ const getContractById = async (req, res, next) => {
       [id]
     );
     contract.signatures = signatures;
+
+    // Get proposed end dates (if table exists)
+    try {
+      const [proposedEndDates] = await pool.execute(
+        `SELECT user_id, proposed_end_date
+         FROM contract_proposed_end_dates
+         WHERE contract_id = ?`,
+        [id]
+      );
+      
+      // Add proposed end dates to contract
+      contract.proposed_end_dates = {};
+      proposedEndDates.forEach(item => {
+        // Format date to YYYY-MM-DD string to avoid timezone issues
+        let dateStr = item.proposed_end_date;
+        if (dateStr instanceof Date) {
+          const year = dateStr.getFullYear();
+          const month = String(dateStr.getMonth() + 1).padStart(2, '0');
+          const day = String(dateStr.getDate()).padStart(2, '0');
+          dateStr = `${year}-${month}-${day}`;
+        } else if (typeof dateStr === 'string' && dateStr.includes('T')) {
+          dateStr = dateStr.split('T')[0];
+        }
+        
+        if (item.user_id === contract.landlord_user_id) {
+          contract.proposed_end_dates.landlord = dateStr;
+        } else {
+          // Check if it's a tenant
+          const tenant = tenants.find(t => t.id === item.user_id);
+          if (tenant) {
+            if (!contract.proposed_end_dates.tenants) {
+              contract.proposed_end_dates.tenants = {};
+            }
+            contract.proposed_end_dates.tenants[item.user_id] = dateStr;
+          }
+        }
+      });
+    } catch (err) {
+      // Table doesn't exist yet, initialize empty object
+      contract.proposed_end_dates = {};
+    }
 
     res.json({ contract });
   } catch (error) {
@@ -189,10 +246,13 @@ const updateContract = async (req, res, next) => {
     const { id } = req.params;
     const { start_date, end_date, rent, deposit, status } = req.body;
 
-    // Check ownership
+    // Check ownership and authorization
     const [contracts] = await pool.execute(
-      'SELECT landlord_user_id, status FROM contracts WHERE id = ?',
-      [id]
+      `SELECT c.*, 
+              EXISTS(SELECT 1 FROM contract_tenants ct WHERE ct.contract_id = c.id AND ct.tenant_user_id = ?) as is_tenant
+       FROM contracts c
+       WHERE c.id = ?`,
+      [req.user.id, id]
     );
 
     if (contracts.length === 0) {
@@ -200,9 +260,24 @@ const updateContract = async (req, res, next) => {
     }
 
     const contract = contracts[0];
+    const isLandlord = contract.landlord_user_id === req.user.id;
+    const isTenant = contract.is_tenant === 1;
 
-    if (contract.landlord_user_id !== req.user.id && req.user.role !== 'admin') {
+    // For end_date updates, allow both landlord and tenant (when both have agreed)
+    // For other fields, only landlord can update
+    const isUpdatingEndDateOnly = end_date !== undefined && 
+                                   start_date === undefined && 
+                                   rent === undefined && 
+                                   deposit === undefined && 
+                                   status === undefined;
+
+    if (!isUpdatingEndDateOnly && contract.landlord_user_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'You do not have permission to update this contract.' });
+    }
+
+    // For end_date updates, verify user is either landlord or tenant
+    if (isUpdatingEndDateOnly && !isLandlord && !isTenant && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You are not authorized to update this contract.' });
     }
 
     // Build update query
@@ -335,12 +410,94 @@ const createContractValidation = [
   body('tenant_ids').optional().isArray()
 ];
 
+// Save proposed end date
+const saveProposedEndDate = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { proposed_end_date } = req.body;
+
+    if (!proposed_end_date) {
+      return res.status(400).json({ error: 'Proposed end date is required.' });
+    }
+
+    // Get contract to verify authorization
+    const [contracts] = await pool.execute(
+      `SELECT c.*, 
+              EXISTS(SELECT 1 FROM contract_tenants ct WHERE ct.contract_id = c.id AND ct.tenant_user_id = ?) as is_tenant
+       FROM contracts c
+       WHERE c.id = ?`,
+      [req.user.id, id]
+    );
+
+    if (contracts.length === 0) {
+      return res.status(404).json({ error: 'Contract not found.' });
+    }
+
+    const contract = contracts[0];
+
+    // Check if user is landlord or tenant
+    const isLandlord = contract.landlord_user_id === req.user.id;
+    const isTenant = contract.is_tenant === 1;
+
+    if (!isLandlord && !isTenant) {
+      return res.status(403).json({ error: 'You are not authorized to propose an end date for this contract.' });
+    }
+
+    // Validate end date is after start date
+    if (new Date(proposed_end_date) < new Date(contract.start_date)) {
+      return res.status(400).json({ error: 'End date must be after start date.' });
+    }
+
+    // Insert or update proposed end date
+    await pool.execute(
+      `INSERT INTO contract_proposed_end_dates (contract_id, user_id, proposed_end_date, updated_at)
+       VALUES (?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE proposed_end_date = ?, updated_at = NOW()`,
+      [id, req.user.id, proposed_end_date, proposed_end_date]
+    );
+
+    res.json({ message: 'Proposed end date saved successfully', proposed_end_date });
+  } catch (error) {
+    // If table doesn't exist, create it
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      try {
+        await pool.execute(`
+          CREATE TABLE IF NOT EXISTS contract_proposed_end_dates (
+            contract_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            proposed_end_date DATE NOT NULL,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (contract_id, user_id),
+            CONSTRAINT fk_cped_contract FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
+            CONSTRAINT fk_cped_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+          ) ENGINE=InnoDB
+        `);
+        
+        // Retry the insert
+        await pool.execute(
+          `INSERT INTO contract_proposed_end_dates (contract_id, user_id, proposed_end_date, updated_at)
+           VALUES (?, ?, ?, NOW())
+           ON DUPLICATE KEY UPDATE proposed_end_date = ?, updated_at = NOW()`,
+          [id, req.user.id, proposed_end_date, proposed_end_date]
+        );
+        
+        res.json({ message: 'Proposed end date saved successfully', proposed_end_date });
+      } catch (createError) {
+        next(createError);
+      }
+    } else {
+      next(error);
+    }
+  }
+};
+
 module.exports = {
   getContracts,
   getContractById,
   createContract,
   updateContract,
   signContract,
+  saveProposedEndDate,
   createContractValidation
 };
 

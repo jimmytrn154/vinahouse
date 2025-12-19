@@ -12,6 +12,7 @@ import ListingDetail from './pages/tenant/ListingDetail';
 // Simple Dashboard Placeholder
 // Placeholder Components (You will build these next)
 import TenantDashboard from './pages/tenant/TenantDashboard';
+import Contracts from './pages/Contracts';
 
 // Simple Dashboard Placeholder
 // Placeholder Components (You will build these next)
@@ -64,9 +65,15 @@ function App() {
         <Route path="/listings" element={<ListingSearch />} />
         <Route path="/listings/:id" element={<ListingDetail />} />
 
+        {/* SHARED ROUTES (Both tenant and landlord) */}
+        <Route element={<ProtectedRoute allowedRoles={['tenant', 'landlord']} />}>
+          <Route path="/contracts" element={<Contracts />} />
+        </Route>
+
         {/* TENANT ROUTES (Role: tenant) */}
         <Route element={<ProtectedRoute allowedRoles={['tenant']} />}>
           <Route path="/dashboard" element={<TenantDashboard />} />
+          <Route path="/tenant/dashboard" element={<TenantDashboard />} />
           <Route path="/my-contracts" element={<ContractList />} />
         </Route>
 
@@ -76,7 +83,6 @@ function App() {
           <Route path="/landlord" element={<Navigate to="/landlord/dashboard" replace />} />
           <Route path="/landlord/create-listing/:propertyId" element={<CreateListing />} />
           <Route path="/landlord/properties" element={<MyProperties />} />
-          <Route path="/landlord/contracts" element={<h1>Manage Contracts</h1>} />
         </Route>
 
         {/* ADMIN ROUTES (Role: admin) */}

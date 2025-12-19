@@ -98,7 +98,10 @@ export default function TenantDashboard() {
 
                     {/* Contracts */}
                     <Grid item xs={12} md={6}>
-                        <Paper sx={{ p: 3, height: '100%', borderRadius: 4, boxShadow: 3 }}>
+                        <Paper 
+                            sx={{ p: 3, height: '100%', borderRadius: 4, boxShadow: 3, cursor: 'pointer' }}
+                            onClick={() => navigate('/contracts')}
+                        >
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                 <Typography variant="h5" fontWeight="bold">My Contracts</Typography>
                                 <Chip label={contracts.length} color="secondary" size="small" />
@@ -109,7 +112,15 @@ export default function TenantDashboard() {
                             ) : (
                                 <List>
                                     {contracts.map((con) => (
-                                        <ListItem key={con.id} button onClick={() => navigate(`/contracts/${con.id}`)} sx={{ bgcolor: 'background.default', mb: 1, borderRadius: 2 }}>
+                                        <ListItem 
+                                            key={con.id} 
+                                            button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/contracts`);
+                                            }} 
+                                            sx={{ bgcolor: 'background.default', mb: 1, borderRadius: 2 }}
+                                        >
                                             <ListItemAvatar>
                                                 <Avatar sx={{ bgcolor: 'secondary.main' }}>
                                                     <AssignmentIcon />
@@ -117,7 +128,7 @@ export default function TenantDashboard() {
                                             </ListItemAvatar>
                                             <ListItemText
                                                 primary={`Contract #${con.id}`}
-                                                secondary={`Rent: $${con.rent_amount}`}
+                                                secondary={`Rent: $${con.rent || con.rent_amount || 'N/A'}`}
                                             />
                                             <Chip label={con.status} color="success" size="small" />
                                         </ListItem>

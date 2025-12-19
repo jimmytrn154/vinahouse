@@ -111,14 +111,14 @@ export default function LandlordDashboard() {
           </div>
 
           {/* Card 3: Contracts */}
-          <div className="stat-card green">
+          <div className="stat-card green" style={{ cursor: 'pointer' }} onClick={() => navigate('/contracts')}>
             <div>
               <div className="stat-title">Active Contracts</div>
               <div className="stat-value">{stats.contracts}</div>
             </div>
             <div className="stat-footer">
               <span>Monthly Revenue</span>
-              <span style={{ fontSize: '0.8rem', color: '#16a34a' }}>View details</span>
+              <span style={{ fontSize: '0.8rem', color: '#16a34a' }}>View details &rarr;</span>
             </div>
           </div>
         </div>
