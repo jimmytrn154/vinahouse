@@ -18,6 +18,9 @@ router.put('/:id', authenticate, contractController.updateContract);
 // Sign contract
 router.post('/:id/sign', authenticate, contractController.signContract);
 
+// Save proposed end date
+router.post('/:id/proposed-end-date', authenticate, contractController.saveProposedEndDate);
+
 module.exports = router;
 
 

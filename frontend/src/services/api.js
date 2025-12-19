@@ -85,7 +85,10 @@ export const requestService = {
 export const contractService = {
   getAll: () => api.get('/contracts'),
   getById: (id) => api.get(`/contracts/${id}`),
+  create: (data) => api.post('/contracts', data),
+  update: (id, data) => api.put(`/contracts/${id}`, data),
   sign: (id) => api.post(`/contracts/${id}/sign`),
+  saveProposedEndDate: (id, proposed_end_date) => api.post(`/contracts/${id}/proposed-end-date`, { proposed_end_date }),
 };
 
 // --- ISSUE SERVICE ---
