@@ -8,7 +8,7 @@ import CreateListing from './pages/landlord/CreateListing';
 import MyProperties from './pages/landlord/MyProperties';
 import ListingSearch from './pages/tenant/ListingSearch';
 import ListingDetail from './pages/tenant/ListingDetail';
-
+import LandingPage from './pages/LandingPage';
 // Simple Dashboard Placeholder
 // Placeholder Components (You will build these next)
 import TenantDashboard from './pages/tenant/TenantDashboard';
@@ -59,6 +59,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* PUBLIC ROUTES */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<AuthPage />} />
         <Route path="/register" element={<AuthPage />} />
         <Route path="/" element={<Navigate to="/listings" replace />} />
@@ -96,7 +97,7 @@ function App() {
         </Route>
 
         {/* Default Redirect */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
