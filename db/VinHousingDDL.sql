@@ -241,7 +241,7 @@ CREATE TABLE issue_reports (
 
   CONSTRAINT ck_issue_category CHECK (category IN ('maintenance','scam','safety','noise','hygiene','contract_dispute','other')),
   CONSTRAINT ck_issue_severity CHECK (severity IN ('low','medium','high','critical')),
-  CONSTRAINT ck_issue_status CHECK (status IN ('open','triaged','in_progress','resolved','rejected'))
+  CONSTRAINT ck_issue_status CHECK (status IN ())
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_issue_contract_status ON issue_reports(contract_id, status);

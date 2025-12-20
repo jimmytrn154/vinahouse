@@ -28,7 +28,7 @@ const getRentalRequests = async (req, res, next) => {
       query += ' AND l.owner_user_id = ?';
       params.push(owner_id);
     }
-    
+
     if (listing_id) {
       query += ' AND rr.listing_id = ?';
       params.push(listing_id);
@@ -96,48 +96,32 @@ const createRentalRequest = async (req, res, next) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    if (req.user.role !== 'tenant') {
-      return res.status(403).json({ error: 'Only tenants can create rental requests.' });
-    }
-
     const { listing_id, message, desired_move_in } = req.body;
     const requester_user_id = req.user.id;
 
-    // Check if listing exists and is available
-    const [listings] = await pool.execute(
-      'SELECT id, status, owner_user_id FROM listings WHERE id = ?',
-      [listing_id]
-    );
+    
+    try {
+      await pool.execute(
+        'CALL sp_create_rental_request(?, ?, ?, ?)',
+        [listing_id, requester_user_id, message || null, desired_move_in || null]
+      );
 
-    if (listings.length === 0) {
-      return res.status(404).json({ error: 'Listing not found.' });
+      const [requests] = await pool.execute(
+        'SELECT * FROM rental_requests WHERE listing_id = ? AND requester_user_id = ? AND status = "pending" ORDER BY created_at DESC LIMIT 1',
+        [listing_id, requester_user_id]
+      );
+
+      res.status(201).json({
+        message: 'Rental request created successfully',
+        rental_request: requests[0]
+      });
+    } catch (procError) {
+      // Handle errors from SIGNAL SQLSTATE in the procedure
+      if (procError.sqlState === '45000') {
+        return res.status(400).json({ error: procError.message });
+      }
+      throw procError;
     }
-
-    if (!['verified', 'available'].includes(listings[0].status)) {
-      return res.status(400).json({ error: 'Listing is not available for rental requests.' });
-    }
-
-    // Check for existing pending request
-    const [existing] = await pool.execute(
-      'SELECT id FROM rental_requests WHERE listing_id = ? AND requester_user_id = ? AND status = ?',
-      [listing_id, requester_user_id, 'pending']
-    );
-
-    if (existing.length > 0) {
-      return res.status(409).json({ error: 'You already have a pending request for this listing.' });
-    }
-
-    const [result] = await pool.execute(
-      'INSERT INTO rental_requests (listing_id, requester_user_id, message, desired_move_in, status) VALUES (?, ?, ?, ?, ?)',
-      [listing_id, requester_user_id, message || null, desired_move_in || null, 'pending']
-    );
-
-    const [requests] = await pool.execute(
-      'SELECT * FROM rental_requests WHERE id = ?',
-      [result.insertId]
-    );
-
-    res.status(201).json({ message: 'Rental request created successfully', rental_request: requests[0] });
   } catch (error) {
     next(error);
   }

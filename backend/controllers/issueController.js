@@ -188,7 +188,7 @@ const updateIssueStatus = async (req, res, next) => {
     const currentIssue = issues[0];
     const oldStatus = currentIssue.status;
 
-    // Only admin can change status to triaged/in_progress/resolved/rejected
+    // Only admin or landlord can change status
     const isLandlord = req.user.id === currentIssue.landlord_user_id;
     const isAdmin = req.user.role === 'admin';
 
@@ -196,40 +196,27 @@ const updateIssueStatus = async (req, res, next) => {
       return res.status(403).json({ error: 'Only the Landlord or Admin can update this issue.' });
     }
 
-    // Build update query
-    const updates = [];
-    const params = [];
-
-    if (status !== undefined) {
-      updates.push('status = ?');
-      params.push(status);
-    }
-
-    if (assignee_user_id !== undefined) {
-      updates.push('assignee_user_id = ?');
-      params.push(assignee_user_id);
-    }
-
-    if (status === 'resolved') {
-      updates.push('resolved_at = NOW()'); // Stamp the finish time
-    } else if (status === 'in_progress' || status === 'open') {
-      updates.push('resolved_at = NULL'); // Clear it if reopened
-    }
-
-    if (updates.length > 0) {
-      params.push(id);
+    try {
       await pool.execute(
-        `UPDATE issue_reports SET ${updates.join(', ')} WHERE id = ?`,
-        params
+        'CALL sp_change_issue_status(?, ?, ?, ?)',
+        [id, status || oldStatus, req.user.id, assignee_user_id || null]
       );
-
-      // Record status change
       if (status && status !== oldStatus) {
         await pool.execute(
           'INSERT INTO issue_status_history (issue_id, from_status, to_status, changed_by, changed_at) VALUES (?, ?, ?, ?, NOW())',
           [id, oldStatus, status, req.user.id]
         );
+        if (status === 'resolved') {
+          await pool.execute('UPDATE issue_reports SET resolved_at = NOW() WHERE id = ?', [id]);
+        } else if (status === 'in_progress' || status === 'open') {
+          await pool.execute('UPDATE issue_reports SET resolved_at = NULL WHERE id = ?', [id]);
+        }
       }
+    } catch (procError) {
+      if (procError.sqlState === '45000') {
+        return res.status(400).json({ error: procError.message });
+      }
+      throw procError;
     }
 
     const [updated] = await pool.execute(
