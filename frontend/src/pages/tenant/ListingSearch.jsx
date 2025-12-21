@@ -1,36 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  Container, Grid, Card, CardMedia, CardContent, Typography, CardActions, 
-  Button, Chip, TextField, Box, InputAdornment, MenuItem, Select, FormControl, InputLabel, Paper, Collapse 
+  FormControl, Select, MenuItem, InputLabel 
 } from '@mui/material';
 import { listingService } from '../../services/api';
 import Navbar from '../../components/Navbar';
 import { useNavigate } from 'react-router-dom';
+
+// Icons
 import SearchIcon from '@mui/icons-material/Search';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import BedIcon from '@mui/icons-material/Bed';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import StarIcon from '@mui/icons-material/Star';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import HomeWorkIcon from '@mui/icons-material/HomeWork';
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'; // Icon for pending
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import BlockIcon from '@mui/icons-material/Block';
+
+import './ListingSearch.css';
 
 export default function ListingSearch() {
   const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // --- Filter States ---
+  // --- Filter States (Restored) ---
   const [priceFilter, setPriceFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  // ✅ NEW: Status Filter (Default to 'verified' so users see clean data first)
+  // Default to 'verified' if you want users to see valid homes first, or 'all' to see everything
   const [statusFilter, setStatusFilter] = useState('all'); 
-  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const loadListings = async () => {
       try {
-        // ✅ CRITICAL CHANGE: Fetch ALL listings so we can filter them locally
-        // Passing {} means "no filter" to the backend
         const res = await listingService.getAll({});
         setListings(res.data.listings || []);
       } catch (error) {
@@ -40,6 +39,7 @@ export default function ListingSearch() {
     loadListings();
   }, []);
 
+  // --- Filtering Logic ---
   const filteredListings = listings.filter(l => {
     // 1. Text Search
     const matchesSearch = 
@@ -57,7 +57,7 @@ export default function ListingSearch() {
     if (typeFilter === 'room') matchesType = l.unit_name !== 'Whole Property';
     if (typeFilter === 'whole_house') matchesType = l.unit_name === 'Whole Property';
 
-    // 4. ✅ NEW: Status Filter
+    // 4. Status Filter
     let matchesStatus = true;
     if (statusFilter && statusFilter !== 'all') {
         matchesStatus = l.status === statusFilter;
@@ -66,145 +66,175 @@ export default function ListingSearch() {
     return matchesSearch && matchesPrice && matchesType && matchesStatus;
   });
 
+  // Custom styles to make MUI Dropdowns look like "Pills"
+  const dropdownStyle = {
+    m: 1,
+    minWidth: 140,
+    backgroundColor: 'white',
+    borderRadius: '30px',
+    '.MuiOutlinedInput-notchedOutline': { borderColor: '#dddddd' },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#222' },
+    '.MuiSelect-select': { padding: '10px 14px', fontSize: '14px', fontWeight: 500 },
+    height: '45px'
+  };
+
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-      <Navbar title="Find Your Home" />
+    <div className="ls-container">
+      <Navbar title="" /> 
 
-      {/* Hero Section */}
-      <Box sx={{ 
-        position: 'relative', bgcolor: 'primary.main', color: 'white', 
-        py: { xs: 6, md: 10 }, mb: 6, textAlign: 'center',
-        backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80)',
-        backgroundSize: 'cover', backgroundPosition: 'center' 
-      }}>
-        <Container maxWidth="md">
-          <Typography variant="h2" fontWeight="800" gutterBottom sx={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-            Discover Your Perfect Space
-          </Typography>
+      {/* --- STICKY FILTER BAR --- */}
+      <div className="ls-filter-bar">
+        <div className="ls-filter-content">
           
-          <Paper elevation={3} sx={{ p: 2, borderRadius: 3, bgcolor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)' }}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-                <TextField
-                  fullWidth variant="outlined" placeholder="Search by location, amenities..."
-                  value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon color="action" /></InputAdornment>) }}
-                  sx={{ bgcolor: 'transparent' }}
+          {/* 1. Search Pill */}
+          <div className="ls-search-pill">
+            <input 
+              type="text" 
+              className="ls-search-input" 
+              placeholder="Search by location..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <button className="ls-search-btn">
+              <SearchIcon fontSize="small" />
+            </button>
+          </div>
+
+          {/* 2. Dropdown Filters (Restored) */}
+          <div className="ls-filters-row">
+            
+            {/* Price Filter */}
+            <FormControl size="small" sx={dropdownStyle}>
+                <InputLabel sx={{ fontSize: '13px', top: '-4px' }}>Price</InputLabel>
+                <Select
+                    value={priceFilter}
+                    label="Price"
+                    onChange={(e) => setPriceFilter(e.target.value)}
+                >
+                    <MenuItem value="">Any Price</MenuItem>
+                    <MenuItem value="low">Under $500</MenuItem>
+                    <MenuItem value="medium">$500 - $1,000</MenuItem>
+                    <MenuItem value="high">Above $1,000</MenuItem>
+                </Select>
+            </FormControl>
+
+            {/* Type Filter */}
+            <FormControl size="small" sx={dropdownStyle}>
+                <InputLabel sx={{ fontSize: '13px', top: '-4px' }}>Type</InputLabel>
+                <Select
+                    value={typeFilter}
+                    label="Type"
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                    <MenuItem value="">All Types</MenuItem>
+                    <MenuItem value="whole_house">Whole Property</MenuItem>
+                    <MenuItem value="room">Private Room</MenuItem>
+                </Select>
+            </FormControl>
+
+            {/* Status Filter */}
+            <FormControl size="small" sx={dropdownStyle}>
+                <InputLabel sx={{ fontSize: '13px', top: '-4px' }}>Status</InputLabel>
+                <Select
+                    value={statusFilter}
+                    label="Status"
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                    <MenuItem value="all">All Statuses</MenuItem>
+                    <MenuItem value="verified">Verified (Active)</MenuItem>
+                    <MenuItem value="pending_verification">Pending Review</MenuItem>
+                    <MenuItem value="rented">Rented / Archived</MenuItem>
+                </Select>
+            </FormControl>
+
+             {/* Clear Button */}
+             {(searchTerm || priceFilter || typeFilter || statusFilter !== 'all') && (
+                <button 
+                    onClick={() => {setSearchTerm(''); setPriceFilter(''); setTypeFilter(''); setStatusFilter('all');}}
+                    style={{ background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer', fontSize: '14px' }}
+                >
+                    Clear
+                </button>
+             )}
+          </div>
+        </div>
+      </div>
+
+      {/* --- LISTINGS GRID --- */}
+      <div className="ls-grid-container">
+        
+        {filteredListings.length === 0 ? (
+          <div className="ls-empty" style={{ width: '100%', gridColumn: '1 / -1', textAlign: 'center', padding: '4rem' }}>
+            <h3>No matches found</h3>
+            <p>Try adjusting your search or filters.</p>
+          </div>
+        ) : (
+          filteredListings.map((l) => (
+            <div 
+              key={l.id} 
+              className="ls-card"
+              onClick={() => navigate(`/listings/${l.id}`)}
+            >
+              {/* Image Section */}
+              <div className="ls-img-container">
+                <button className="ls-heart-btn" onClick={(e) => e.stopPropagation()}>
+                  <FavoriteBorderIcon sx={{ color: 'white', filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }} />
+                </button>
+                
+                {/* --- STATUS BADGES --- */}
+                <div className="ls-badge-container">
+                    {l.status === 'verified' && (
+                        <div className="ls-badge verified">
+                            <VerifiedIcon sx={{ fontSize: 14 }} /> Verified
+                        </div>
+                    )}
+                    {l.status === 'pending_verification' && (
+                        <div className="ls-badge pending">
+                            <HourglassEmptyIcon sx={{ fontSize: 14 }} /> Pending
+                        </div>
+                    )}
+                    {l.status === 'rented' && (
+                        <div className="ls-badge rented">
+                            <BlockIcon sx={{ fontSize: 14 }} /> Rented
+                        </div>
+                    )}
+                </div>
+                
+                <img 
+                  src={l.image_url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=2340&q=80"} 
+                  alt="Property" 
+                  className="ls-main-img"
                 />
-                <Button variant="contained" size="large" sx={{ px: 4, py: 1.5, fontSize: '1.1rem', borderRadius: 2 }}>
-                  Search
-                </Button>
-            </Box>
+              </div>
 
-            {/* Collapsible Filters */}
-            <Collapse in={showFilters} sx={{ width: '100%', mt: showFilters ? 2 : 0 }}>
-                <Box sx={{ display: 'flex', gap: 2, pt: 2, borderTop: '1px solid #eee', flexWrap: 'wrap' }}>
-                    
-                    {/* Price Filter */}
-                    <FormControl size="small" sx={{ flex: 1, minWidth: '150px' }}>
-                        <InputLabel>Price Range</InputLabel>
-                        <Select value={priceFilter} label="Price Range" onChange={(e) => setPriceFilter(e.target.value)}>
-                            <MenuItem value="">Any Price</MenuItem>
-                            <MenuItem value="low">Under $500</MenuItem>
-                            <MenuItem value="medium">$500 - $1,000</MenuItem>
-                            <MenuItem value="high">Above $1,000</MenuItem>
-                        </Select>
-                    </FormControl>
+              {/* Text Content */}
+              <div className="ls-card-details">
+                <div className="ls-header-row">
+                  <span className="ls-location">
+                    {l.property_address ? l.property_address.split(',')[0] : 'Unknown Location'}
+                  </span>
+                  <span className="ls-rating">
+                    <StarIcon sx={{ fontSize: 14 }} /> 4.9
+                  </span>
+                </div>
+                
+                <div className="ls-subtext">
+                  {l.unit_name === 'Whole Property' ? 'Whole House' : 'Private Room'}
+                </div>
+                
+                {/* Dynamic Subtext based on status */}
+                <div className="ls-subtext">
+                   {l.status === 'rented' ? 'Currently unavailable' : 'Available now'}
+                </div>
 
-                    {/* Type Filter */}
-                    <FormControl size="small" sx={{ flex: 1, minWidth: '150px' }}>
-                        <InputLabel>Property Type</InputLabel>
-                        <Select value={typeFilter} label="Property Type" onChange={(e) => setTypeFilter(e.target.value)}>
-                            <MenuItem value="">All Types</MenuItem>
-                            <MenuItem value="whole_house">Whole Property Only</MenuItem>
-                            <MenuItem value="room">Private Room Only</MenuItem>
-                        </Select>
-                    </FormControl>
-
-                    {/* ✅ NEW: Status Filter Dropdown */}
-                    <FormControl size="small" sx={{ flex: 1, minWidth: '150px' }}>
-                        <InputLabel>Status</InputLabel>
-                        <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
-                            <MenuItem value="all">All Statuses</MenuItem>
-                            <MenuItem value="verified">Verified (Active)</MenuItem>
-                            <MenuItem value="pending_verification">Pending Review</MenuItem>
-                            <MenuItem value="rented">Rented / Archived</MenuItem>
-                        </Select>
-                    </FormControl>
-
-                </Box>
-            </Collapse>
-          </Paper>
-          
-          <Button startIcon={<FilterListIcon />} sx={{ mt: 2, color: 'white', opacity: 0.9 }} onClick={() => setShowFilters(!showFilters)}>
-            {showFilters ? "Hide Filters" : "More Filters"}
-          </Button>
-        </Container>
-      </Box>
-
-      {/* Results Grid */}
-      <Container maxWidth="lg" sx={{ mb: 8 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Typography variant="h5" fontWeight="bold" color="text.primary">
-            Available Listings <Chip label={filteredListings.length} color="primary" size="small" sx={{ ml: 1, fontWeight: 'bold' }} />
-          </Typography>
-        </Box>
-
-        <Grid container spacing={4}>
-          {filteredListings.map((l) => (
-            <Grid item xs={12} sm={6} md={4} key={l.id}>
-              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
-                <Box sx={{ position: 'relative' }}>
-                  <CardMedia component="img" height="240" image={l.image_url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=2340&q=80"} alt="House" />
-                  
-                  {/* ✅ DYNAMIC BADGES BASED ON STATUS */}
-                  <Box sx={{ position: 'absolute', top: 12, right: 12 }}>
-                      {l.status === 'verified' && (
-                        <Chip icon={<VerifiedIcon sx={{ color: 'white !important' }} />} label="Verified" size="small" sx={{ bgcolor: 'success.main', color: 'white', fontWeight: 'bold' }} />
-                      )}
-                      {l.status === 'pending_verification' && (
-                        <Chip icon={<HourglassEmptyIcon sx={{ color: 'white !important' }} />} label="Pending" size="small" sx={{ bgcolor: 'warning.main', color: 'white', fontWeight: 'bold' }} />
-                      )}
-                      {l.status === 'rented' && (
-                        <Chip label="Rented" size="small" sx={{ bgcolor: 'grey.700', color: 'white', fontWeight: 'bold' }} />
-                      )}
-                  </Box>
-
-                  <Box sx={{ position: 'absolute', bottom: 12, left: 12, bgcolor: 'rgba(0,0,0,0.7)', color: 'white', px: 1.5, py: 0.5, borderRadius: 2, backdropFilter: 'blur(4px)', fontWeight: 'bold' }}>
-                    ${Number(l.price).toLocaleString()}/mo
-                  </Box>
-                </Box>
-
-                <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                  <Typography variant="h6" fontWeight="bold" gutterBottom noWrap>
-                    {l.unit_name === 'Whole Property' ? 'Whole Property' : `${l.unit_name}`}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}>
-                    <LocationOnIcon fontSize="small" color="action" /> {l.property_address}
-                  </Typography>
-                  
-                  {/* Type Icon */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}>
-                       {l.unit_name === 'Whole Property' ? <HomeWorkIcon fontSize="small" color="action"/> : <BedIcon fontSize="small" color="action" />}
-                       <Typography variant="caption" fontWeight="bold">
-                         {l.unit_name === 'Whole Property' ? 'House' : 'Room'}
-                       </Typography>
-                  </Box>
-
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    {l.description}
-                  </Typography>
-                </CardContent>
-
-                <CardActions sx={{ p: 2, pt: 0 }}>
-                  <Button variant="outlined" fullWidth onClick={() => navigate(`/listings/${l.id}`)} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
-                    View Details
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    </Box>
+                <div className="ls-price">
+                  <strong>${Number(l.price).toLocaleString()}</strong> month
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
