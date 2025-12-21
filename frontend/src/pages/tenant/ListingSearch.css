@@ -1,0 +1,228 @@
+/* src/pages/ListingSearch.css */
+
+/* --- RESET & LAYOUT --- */
+.ls-container {
+  background-color: #ffffff;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #222222;
+  padding-bottom: 80px;
+}
+
+/* --- STICKY FILTER BAR --- */
+.ls-filter-bar {
+  position: sticky;
+  top: 80px; /* Adjust based on your Navbar height */
+  z-index: 90;
+  background-color: #ffffff;
+  border-bottom: 1px solid #ebebeb;
+  padding: 16px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.ls-filter-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Search Input (Pill Shape) */
+.ls-search-pill {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 40px;
+  padding: 8px 8px 8px 24px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  transition: box-shadow 0.2s;
+  width: 300px;
+  margin-right: 16px;
+}
+
+.ls-search-pill:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.18);
+}
+
+.ls-search-input {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #222;
+  flex: 1;
+  background: transparent;
+}
+
+.ls-search-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+/* --- DROPDOWN FILTERS --- */
+/* We will style the MUI components in the JSX, but this container helps align them */
+.ls-filters-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* --- LISTING GRID --- */
+.ls-grid-container {
+  max-width: 1400px;
+  margin: 24px auto 0;
+  padding: 0 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  column-gap: 24px;
+  row-gap: 40px;
+}
+
+/* --- THE CARD --- */
+.ls-card {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  group: hover;
+}
+
+.ls-img-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 20 / 19;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #f3f3f3;
+  margin-bottom: 12px;
+}
+
+.ls-main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.ls-card:hover .ls-main-img {
+  transform: scale(1.05);
+}
+
+.ls-heart-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
+}
+
+/* --- STATUS BADGES --- */
+.ls-badge-container {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 5;
+}
+
+.ls-badge {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #222;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+}
+
+.ls-badge.verified { color: #10b981; } /* Green */
+.ls-badge.pending { color: #f59e0b; } /* Orange */
+.ls-badge.rented { color: #64748b; background: #e2e8f0; } /* Gray */
+
+/* Typography */
+.ls-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ls-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 15px;
+  line-height: 19px;
+  color: #222222;
+}
+
+.ls-location {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+}
+
+.ls-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 400;
+}
+
+.ls-subtext {
+  color: #717171;
+  font-size: 15px;
+  line-height: 19px;
+}
+
+.ls-price {
+  margin-top: 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 15px;
+  color: #222222;
+}
+
+.ls-price strong {
+  font-weight: 600;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+  .ls-filter-content {
+    padding: 0 24px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ls-search-pill {
+    width: 100%;
+    margin-right: 0;
+  }
+  .ls-filters-row {
+    justify-content: space-between;
+    overflow-x: auto;
+  }
+}
