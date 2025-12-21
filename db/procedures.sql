@@ -26,7 +26,7 @@ BEGIN
     END IF;
 
     -- 2) Only allow requests on available listings
-    IF v_listing_status <> 'available' THEN
+    IF v_listing_status <> 'verified' THEN
         SIGNAL SQLSTATE '45000'
             SET MESSAGE_TEXT = 'Listing is not open for rental requests';
     END IF;
