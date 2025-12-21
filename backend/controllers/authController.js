@@ -150,7 +150,7 @@ const loginValidation = [
 module.exports = {
   register,
   login,
-  getProfile,
+  getProfile, 
   registerValidation,
   loginValidation
 };
