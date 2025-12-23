@@ -3,6 +3,7 @@ const cors = require('cors');
 const http = require('http'); // 1. Import HTTP
 const { Server } = require('socket.io'); // 2. Import Socket.io
 require('dotenv').config();
+const pool = require('./config/database');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -19,8 +20,11 @@ const verificationRoutes = require('./routes/verifications');
 // Import error handler
 const errorHandler = require('./middleware/errorHandler');
 
+const ALLOWED_ORIGIN = process.env.CLIENT_URL || "http://localhost:3000";
+
 const app = express();
 const PORT = process.env.PORT || 5000; // Recommendation: Use 5000 for backend to avoid conflict with React (3000)
+
 
 // 3. Create HTTP Server
 const server = http.createServer(app);
@@ -28,7 +32,7 @@ const server = http.createServer(app);
 // 4. Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000"], // Allow your React Frontend
+    origin: [ALLOWED_ORIGIN], // Trust both Prod and Local
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   }
@@ -36,7 +40,7 @@ const io = new Server(server, {
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: [ALLOWED_ORIGIN],
   credentials: true
 }));
 
@@ -89,6 +93,13 @@ io.on('connection', (socket) => {
   });
 });
 
+pool.query('SELECT 1')
+  .then(() => {
+    console.log('✅ Database connected successfully');
+  })
+  .catch((err) => {
+    console.error('❌ Database connection failed:', err.message);
+  });
 // 6. Start SERVER (not app)
 server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
