@@ -1,9 +1,8 @@
 import io from 'socket.io-client';
 
-// Use the same URL as your API
-const SOCKET_URL = 'http://localhost:5000';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-export const socket = io(SOCKET_URL, {
-  transports: ['websocket'], // Force WebSocket protocol for better performance
+export const socket = io(BASE_URL, {
+  transports: ['websocket'],
   autoConnect: true,
 });
