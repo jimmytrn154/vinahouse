@@ -89,43 +89,83 @@ const getRentalRequestById = async (req, res, next) => {
 };
 
 // Create rental request
+// backend/controllers/rentalRequestController.js
+
 const createRentalRequest = async (req, res, next) => {
   try {
+    // 1. Validation
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { listing_id, message, desired_move_in } = req.body;
-    const requester_user_id = req.user.id;
+    const requester_user_id = req.user.id; // Assumes auth middleware sets this
 
+    // --- LOGIC MOVED FROM STORED PROCEDURE TO NODE.JS ---
+
+    // Check 1: Listing Exists & Is Verified
+    // We use pool.query to avoid TiDB "Prepared Statement" issues
+    const [listings] = await pool.query(
+      'SELECT status, owner_user_id FROM listings WHERE id = ?', 
+      [listing_id]
+    );
+
+    if (listings.length === 0) {
+      return res.status(404).json({ error: 'Listing does not exist' });
+    }
     
-    try {
-      await pool.execute(
-        'CALL sp_create_rental_request(?, ?, ?, ?)',
-        [listing_id, requester_user_id, message || null, desired_move_in || null]
-      );
+    const listing = listings[0];
+    if (listing.status !== 'verified') {
+      return res.status(400).json({ error: 'Listing is not open for rental requests' });
+    }
 
-      const [requests] = await pool.execute(
-        'SELECT * FROM rental_requests WHERE listing_id = ? AND requester_user_id = ? AND status = "pending" ORDER BY created_at DESC LIMIT 1',
-        [listing_id, requester_user_id]
-      );
+    // Check 2: Requester is a Tenant
+    // (Optional: You can likely get this from req.user.role if your JWT has it, 
+    // but we'll query DB to be 100% safe matching the procedure logic)
+    const [users] = await pool.query(
+      'SELECT role FROM users WHERE id = ?', 
+      [requester_user_id]
+    );
 
-      if (req.io) {
-        req.io.emit('rental_request_created', requests[0]);
+    if (users.length === 0 || users[0].role !== 'tenant') {
+      return res.status(403).json({ error: 'Only tenants can create rental requests' });
+    }
+
+    // Check 3: Prevent Duplicates
+    const [duplicates] = await pool.query(
+      'SELECT id FROM rental_requests WHERE listing_id = ? AND requester_user_id = ? AND status = "pending"',
+      [listing_id, requester_user_id]
+    );
+
+    if (duplicates.length > 0) {
+      return res.status(409).json({ error: 'You already have a pending request for this listing' });
+    }
+
+    // --- ALL CHECKS PASSED, INSERT DATA ---
+
+    const [insertResult] = await pool.query(
+      `INSERT INTO rental_requests (listing_id, requester_user_id, message, desired_move_in, status) 
+       VALUES (?, ?, ?, ?, 'pending')`,
+      [listing_id, requester_user_id, message || null, desired_move_in || null]
+    );
+
+    // Fetch the newly created request to return it (matching previous behavior)
+    const [newRequest] = await pool.query(
+      'SELECT * FROM rental_requests WHERE id = ?',
+      [insertResult.insertId]
+    );
+
+    // Real-time notification
+    if (req.io) {
+      req.io.emit('rental_request_created', newRequest[0]);
     }
 
     res.status(201).json({
       message: 'Rental request created successfully',
-      rental_request: requests[0]
+      rental_request: newRequest[0]
     });
-    } catch (procError) {
-      // Handle errors from SIGNAL SQLSTATE in the procedure
-      if (procError.sqlState === '45000') {
-        return res.status(400).json({ error: procError.message });
-      }
-      throw procError;
-    }
+
   } catch (error) {
     next(error);
   }
